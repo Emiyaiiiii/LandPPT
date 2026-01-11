@@ -16,8 +16,15 @@ class ConfigService:
     """Configuration management service"""
     
     def __init__(self, env_file: str = ".env"):
-        self.env_file = env_file
         self.env_path = Path(env_file)
+        if not self.env_path.is_absolute():
+            # Make env path stable regardless of the process CWD.
+            for parent in Path(__file__).resolve().parents:
+                if (parent / "pyproject.toml").exists():
+                    self.env_path = parent / env_file
+                    break
+
+        self.env_file = str(self.env_path)
         
         # Ensure .env file exists
         if not self.env_path.exists():
@@ -47,7 +54,7 @@ class ConfigService:
             "google_model": {"type": "text", "category": "ai_providers", "default": "gemini-2.5-flash"},
             
             "ollama_base_url": {"type": "url", "category": "ai_providers", "default": "http://localhost:11434"},
-            "ollama_model": {"type": "text", "category": "ai_providers", "default": "llama2"},
+            "ollama_model": {"type": "text", "category": "ai_providers", "default": "auto"},
             
             # 302.AI Configuration
             "302ai_api_key": {"type": "password", "category": "ai_providers"},

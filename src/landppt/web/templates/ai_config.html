@@ -200,7 +200,7 @@
                         <div class="form-group">
                             <label>默认模型:</label>
                             <input type="text" name="ollama_model" value="{{ current_config.get('ollama_model', '') }}"
-                                placeholder="{{ current_config.get('ollama_model', 'llama2, mistral, codellama...') }}">
+                                placeholder="{{ current_config.get('ollama_model', 'auto（自动选择已安装模型）, llama3.2:latest, qwen2.5:latest...') }}">
                         </div>
                         {% elif provider == "302ai" %}
                         <div class="form-group">
@@ -3285,7 +3285,22 @@
     async function testOllamaProvider(config) {
         try {
             let baseUrl = config.ollama_base_url || 'http://localhost:11434';
-            let model = config.ollama_model || 'llama2';
+            let model = (config.ollama_model || 'auto').trim();
+
+            // If model is "auto", pick the first installed model from Ollama.
+            if (!model || model.toLowerCase() === 'auto') {
+                const tagsResp = await fetch(`${baseUrl}/api/tags`, { method: 'GET' });
+                if (!tagsResp.ok) {
+                    const errorText = await tagsResp.text();
+                    throw new Error(errorText || `HTTP ${tagsResp.status}`);
+                }
+                const tagsData = await tagsResp.json();
+                const models = (tagsData.models || []).map(m => m && m.name).filter(Boolean);
+                if (!models.length) {
+                    throw new Error('No local Ollama models found. Please run: ollama pull <model>');
+                }
+                model = models[0];
+            }
 
             // 调用 Ollama API 进行测试
             const response = await fetch(`${baseUrl}/api/generate`, {

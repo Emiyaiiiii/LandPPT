@@ -738,6 +738,69 @@ class OllamaProvider(AIProvider):
         except ImportError:
             logger.warning("Ollama library not installed. Install with: pip install ollama")
             self.client = None
+
+    async def _list_installed_models(self) -> List[str]:
+        if not self.client:
+            return []
+        try:
+            data = await self.client.list()
+            models = data.get("models") or []
+            names: List[str] = []
+            for model_info in models:
+                name = model_info.get("name")
+                if isinstance(name, str) and name.strip():
+                    names.append(name.strip())
+            return names
+        except Exception as e:
+            logger.warning(f"Failed to list Ollama models: {e}")
+            return []
+
+    @staticmethod
+    def _choose_preferred_model(installed: List[str]) -> str:
+        if not installed:
+            return ""
+
+        preferred_bases = [
+            "llama3.2",
+            "llama3.1",
+            "llama3",
+            "qwen2.5",
+            "qwen2",
+            "mistral",
+            "gemma2",
+            "phi3",
+            "llama2",
+        ]
+
+        normalized = [(name, name.split(":", 1)[0]) for name in installed]
+        for base in preferred_bases:
+            for full_name, base_name in normalized:
+                if base_name == base:
+                    return full_name
+
+        return installed[0]
+
+    async def _resolve_model_name(self, requested: Any) -> str:
+        requested_str = str(requested).strip() if requested is not None else ""
+        if not requested_str or requested_str.lower() == "auto":
+            installed = await self._list_installed_models()
+            if not installed:
+                raise RuntimeError(
+                    "Ollama 未检测到已安装的模型（或服务不可用）。请先执行 `ollama pull <model>`，"
+                    "或在配置中设置 `OLLAMA_MODEL` 为已安装模型名称。"
+                )
+            chosen = self._choose_preferred_model(installed)
+            logger.info(f"Ollama model auto-selected: {chosen}")
+            return chosen
+
+        installed = await self._list_installed_models()
+        if installed and requested_str not in installed:
+            # Allow shorthand like "llama3.2" to match "llama3.2:latest"
+            prefix_matches = [name for name in installed if name.startswith(f"{requested_str}:")]
+            if prefix_matches:
+                return prefix_matches[0]
+
+        return requested_str
     
     async def chat_completion(self, messages: List[AIMessage], **kwargs) -> AIResponse:
         """Generate chat completion using Ollama"""
@@ -745,6 +808,7 @@ class OllamaProvider(AIProvider):
             raise RuntimeError("Ollama client not available")
         
         config = self._merge_config(**kwargs)
+        model_name = await self._resolve_model_name(config.get("model", self.model))
         
         # Convert messages to Ollama format with multimodal support
         ollama_messages = []
@@ -775,7 +839,7 @@ class OllamaProvider(AIProvider):
         
         try:
             response = await self.client.chat(
-                model=config.get("model", self.model),
+                model=model_name,
                 messages=ollama_messages,
                 options={
                     "temperature": config.get("temperature", 0.7),
@@ -788,7 +852,7 @@ class OllamaProvider(AIProvider):
             
             return AIResponse(
                 content=content,
-                model=config.get("model", self.model),
+                model=model_name,
                 usage=self._calculate_usage(
                     " ".join([msg.content for msg in messages]),
                     content
@@ -798,6 +862,14 @@ class OllamaProvider(AIProvider):
             )
             
         except Exception as e:
+            msg = str(e)
+            if ("model" in msg and "not found" in msg) or ("not found" in msg and "pull" in msg):
+                installed = await self._list_installed_models()
+                installed_hint = f"已安装模型: {', '.join(installed)}" if installed else "未检测到已安装模型"
+                raise RuntimeError(
+                    f"{msg}。{installed_hint}。请在配置中设置 `OLLAMA_MODEL`（或网页配置中的 Ollama 默认模型），"
+                    "或执行 `ollama pull <model>` 安装模型。"
+                ) from e
             logger.error(f"Ollama API error: {e}")
             raise
     

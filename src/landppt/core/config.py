@@ -3,6 +3,7 @@ Configuration management for LandPPT AI features
 """
 
 import os
+from pathlib import Path
 from typing import Optional, Dict, Any, ClassVar
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -10,7 +11,16 @@ from dotenv import load_dotenv
 
 # Load environment variables with error handling
 try:
-    load_dotenv()
+    # 1) Try default behavior (usually searches from CWD)
+    loaded = load_dotenv()
+    # 2) If not found, try project root (directory that contains pyproject.toml)
+    if not loaded:
+        for parent in Path(__file__).resolve().parents:
+            if (parent / "pyproject.toml").exists():
+                env_path = parent / ".env"
+                if env_path.exists():
+                    load_dotenv(env_path)
+                break
 except (PermissionError, FileNotFoundError) as e:
     # Silently continue if .env file is not accessible
     # This allows the application to work with system environment variables
@@ -40,7 +50,8 @@ class AIConfig(BaseSettings):
     
     # Ollama Configuration
     ollama_base_url: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
-    ollama_model: str = Field(default="llama2", env="OLLAMA_MODEL")
+    # Use "auto" to let the runtime pick an installed local model.
+    ollama_model: str = Field(default="auto", env="OLLAMA_MODEL")
     
     # 302.AI Configuration
     ai_302ai_api_key: Optional[str] = Field(default=None, env="302AI_API_KEY", alias="302ai_api_key")

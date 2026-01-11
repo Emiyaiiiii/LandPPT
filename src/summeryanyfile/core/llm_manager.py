@@ -393,7 +393,7 @@ class LLMManager:
 
         # 构建参数
         openai_kwargs = {
-            "model": model,
+            "model": model_str,
             "temperature": temperature,
             # "max_tokens": max_tokens,
             "api_key": api_key,
@@ -479,6 +479,72 @@ class LLMManager:
 
         # Ollama默认运行在本地，可以通过base_url自定义
         base_url = kwargs.get("base_url") or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+        # Support "auto" to pick an installed local model (avoid hardcoding a specific model like "llama2").
+        def _extract_model_names(payload: Any) -> list[str]:
+            if not isinstance(payload, dict):
+                return []
+            models = payload.get("models") or []
+            if not isinstance(models, list):
+                return []
+            names: list[str] = []
+            for item in models:
+                if isinstance(item, dict):
+                    name = item.get("name")
+                    if isinstance(name, str) and name.strip():
+                        names.append(name.strip())
+            return names
+
+        def _choose_preferred(installed: list[str]) -> str:
+            if not installed:
+                return ""
+            preferred_bases = [
+                "llama3.2",
+                "llama3.1",
+                "llama3",
+                "qwen2.5",
+                "qwen2",
+                "mistral",
+                "gemma2",
+                "phi3",
+                "llama2",
+            ]
+            normalized = [(name, name.split(":", 1)[0]) for name in installed]
+            for base in preferred_bases:
+                for full_name, base_name in normalized:
+                    if base_name == base:
+                        return full_name
+            return installed[0]
+
+        model_str = (str(model).strip() if model is not None else "")
+        if not model_str or model_str.lower() == "auto":
+            try:
+                import ollama
+                client = ollama.Client(host=base_url)
+                installed_models = _extract_model_names(client.list())
+            except Exception as e:
+                raise RuntimeError(f"Ollama model=auto but failed to list local models: {e}") from e
+
+            if not installed_models:
+                raise RuntimeError(
+                    "Ollama model=auto but no local models found. Run `ollama pull <model>` first, "
+                    "or set OLLAMA_MODEL to an installed model name."
+                )
+
+            model_str = _choose_preferred(installed_models)
+            logger.info(f"Auto-selected Ollama model: {model_str}")
+        else:
+            # Allow shorthand like "llama3.2" to match "llama3.2:latest"
+            try:
+                import ollama
+                client = ollama.Client(host=base_url)
+                installed_models = _extract_model_names(client.list())
+                if installed_models and model_str not in installed_models:
+                    prefix_matches = [name for name in installed_models if name.startswith(f"{model_str}:")]
+                    if prefix_matches:
+                        model_str = prefix_matches[0]
+            except Exception:
+                pass
 
         # 构建参数
         ollama_kwargs = {
