@@ -470,14 +470,14 @@ class GoogleProvider(AIProvider):
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
+        self.api_key = config.get("api_key")
+        # Keep the configured base_url; used for REST calls (including mirror endpoints).
+        self.base_url = config.get("base_url", "https://generativelanguage.googleapis.com")
         try:
             import google.generativeai as genai
 
             # Configure the API key
-            genai.configure(api_key=config.get("api_key"))
-
-            # Store base_url for potential future use or proxy configurations
-            self.base_url = config.get("base_url", "https://generativelanguage.googleapis.com")
+            genai.configure(api_key=self.api_key)
 
             self.client = genai
             self.model_instance = genai.GenerativeModel(config.get("model", "gemini-1.5-flash"))
@@ -488,7 +488,6 @@ class GoogleProvider(AIProvider):
 
     def _convert_messages_to_gemini(self, messages: List[AIMessage]):
         """Convert AIMessage list to Gemini format, supporting multimodal content"""
-        import google.generativeai as genai
         import base64
 
         # Try to import genai types for proper image handling
@@ -599,9 +598,115 @@ class GoogleProvider(AIProvider):
 
             return content_parts
 
+    @staticmethod
+    def _normalize_base_url(base_url: str) -> str:
+        base_url = (base_url or "").strip()
+        if not base_url:
+            base_url = "https://generativelanguage.googleapis.com"
+        if not base_url.startswith("http://") and not base_url.startswith("https://"):
+            base_url = "https://" + base_url
+        base_url = base_url.rstrip("/")
+        # Allow users to paste a full v1beta base; normalize back to the host root.
+        if base_url.endswith("/v1beta"):
+            base_url = base_url[: -len("/v1beta")]
+        return base_url
+
+    @staticmethod
+    def _normalize_model_name(model: str) -> str:
+        model = (model or "").strip() or "gemini-1.5-flash"
+        if model.startswith("models/"):
+            model = model.split("/", 1)[1]
+        return model
+
+    @staticmethod
+    def _prompt_to_rest_parts(prompt) -> List[Dict[str, Any]]:
+        import base64
+
+        if isinstance(prompt, str):
+            return [{"text": prompt}]
+
+        parts: List[Dict[str, Any]] = []
+        for item in (prompt or []):
+            if isinstance(item, str):
+                parts.append({"text": item})
+                continue
+
+            if isinstance(item, dict):
+                if "text" in item and isinstance(item["text"], str):
+                    parts.append({"text": item["text"]})
+                    continue
+                if "inline_data" in item and isinstance(item["inline_data"], dict):
+                    inline_data = item["inline_data"]
+                    mime_type = inline_data.get("mime_type") or inline_data.get("mimeType")
+                    data = inline_data.get("data")
+                    if isinstance(data, (bytes, bytearray)):
+                        data = base64.b64encode(data).decode("ascii")
+                    if isinstance(mime_type, str) and isinstance(data, str):
+                        parts.append({"inline_data": {"mime_type": mime_type, "data": data}})
+                        continue
+
+            parts.append({"text": str(item)})
+
+        return parts
+
+    async def _generate_via_rest(
+        self,
+        *,
+        model: str,
+        prompt,
+        generation_config: Dict[str, Any],
+        safety_settings: Optional[List[Dict[str, Any]]] = None,
+        timeout_s: int = 120,
+    ) -> Dict[str, Any]:
+        import aiohttp
+
+        if not self.api_key:
+            raise RuntimeError("Google API key not configured")
+
+        base_url = self._normalize_base_url(self.base_url)
+        model = self._normalize_model_name(model)
+        url = f"{base_url}/v1beta/models/{model}:generateContent?key={self.api_key}"
+
+        body: Dict[str, Any] = {
+            "contents": [{"parts": self._prompt_to_rest_parts(prompt)}],
+            "generationConfig": {
+                "temperature": generation_config.get("temperature", 0.7),
+                "topP": generation_config.get("top_p", generation_config.get("topP", 1.0)),
+            },
+        }
+        if "max_output_tokens" in generation_config:
+            body["generationConfig"]["maxOutputTokens"] = generation_config["max_output_tokens"]
+        if safety_settings:
+            body["safetySettings"] = safety_settings
+
+        timeout = aiohttp.ClientTimeout(total=timeout_s)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, json=body, headers={"Content-Type": "application/json"}) as resp:
+                raw = await resp.text()
+                if resp.status >= 400:
+                    try:
+                        import json as _json
+                        data = _json.loads(raw)
+                        message = (
+                            (data.get("error") or {}).get("message")
+                            or data.get("message")
+                            or raw
+                        )
+                    except Exception:
+                        message = raw
+                    raise RuntimeError(f"Google Gemini API error {resp.status}: {message}")
+
+                try:
+                    import json as _json
+                    return _json.loads(raw) if raw else {}
+                except Exception:
+                    return {}
+
     async def chat_completion(self, messages: List[AIMessage], **kwargs) -> AIResponse:
         """Generate chat completion using Google Gemini"""
-        if not self.client or not self.model_instance:
+        normalized_base_url = self._normalize_base_url(self.base_url)
+        use_rest = normalized_base_url != "https://generativelanguage.googleapis.com"
+        if not use_rest and (not self.client or not self.model_instance):
             raise RuntimeError("Google Gemini client not available")
 
         config = self._merge_config(**kwargs)
@@ -638,6 +743,55 @@ class GoogleProvider(AIProvider):
                     "threshold": "BLOCK_ONLY_HIGH"
                 }
             ]
+
+            if use_rest:
+                response_data = await self._generate_via_rest(
+                    model=config.get("model", self.model),
+                    prompt=prompt,
+                    generation_config={**generation_config, "max_output_tokens": max_tokens},
+                    safety_settings=safety_settings,
+                )
+
+                candidates = response_data.get("candidates") or []
+                if not candidates:
+                    content = "[å“åº”ä¸­æ²¡æœ‰å€™é€‰å†…å®¹]"
+                    finish_reason = "stop"
+                else:
+                    candidate = candidates[0] or {}
+                    finish_reason = str(candidate.get("finishReason") or "stop")
+
+                    parts = ((candidate.get("content") or {}).get("parts") or [])
+                    text_parts: List[str] = []
+                    for p in parts:
+                        t = p.get("text") if isinstance(p, dict) else None
+                        if isinstance(t, str) and t:
+                            text_parts.append(t)
+                    content = "\n".join(text_parts).strip()
+
+                    if not content:
+                        if finish_reason == "SAFETY":
+                            content = "[å†…å®¹è¢«å®‰å…¨è¿‡æ»¤å™¨é˜»æ­¢]"
+                        elif finish_reason == "RECITATION":
+                            content = "[å†…å®¹å› é‡å¤è€Œè¢«é˜»æ­¢]"
+                        elif finish_reason == "MAX_TOKENS":
+                            content = "[å“åº”å› tokené™åˆ¶è¢«æˆªæ–­ï¼Œæ— å†…å®¹]"
+                        else:
+                            content = "[æ— æ³•èŽ·å–å“åº”å†…å®¹]"
+
+                usage_meta = response_data.get("usageMetadata") or {}
+                usage = {
+                    "prompt_tokens": int(usage_meta.get("promptTokenCount") or 0),
+                    "completion_tokens": int(usage_meta.get("candidatesTokenCount") or 0),
+                    "total_tokens": int(usage_meta.get("totalTokenCount") or 0),
+                }
+
+                return AIResponse(
+                    content=content,
+                    model=config.get("model", self.model),
+                    usage=usage,
+                    finish_reason=finish_reason,
+                    metadata={"provider": "google", "base_url": normalized_base_url}
+                )
 
 
             response = await self._generate_async(prompt, generation_config, safety_settings)
