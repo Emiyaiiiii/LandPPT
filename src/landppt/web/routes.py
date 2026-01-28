@@ -2016,7 +2016,8 @@ async def stream_stage_response(
                 async for chunk in ppt_service.ai_provider.stream_text_completion(
                     prompt=prompt,
                     max_tokens=2000,
-                    temperature=0.7
+                    temperature=ai_config.temperature,
+                    top_p=ai_config.top_p
                 ):
                     if chunk:
                         yield f"data: {json.dumps({'content': chunk, 'done': False})}\n\n"
@@ -2856,7 +2857,8 @@ async def ai_slide_edit(
         response = await provider.chat_completion(
             messages=messages,
             max_tokens=ai_config.max_tokens,
-            temperature=0.7,
+            temperature=ai_config.temperature,
+            top_p=ai_config.top_p,
             model=settings.get('model')
         )
 
@@ -3011,7 +3013,8 @@ async def ai_slide_edit_stream(
                     async for chunk in provider.stream_chat_completion(
                         messages=messages,
                         max_tokens=ai_config.max_tokens,
-                        temperature=0.7,
+                        temperature=ai_config.temperature,
+                        top_p=ai_config.top_p,
                         model=settings.get('model')
                     ):
                         if chunk:
@@ -3021,7 +3024,8 @@ async def ai_slide_edit_stream(
                     response = await provider.chat_completion(
                         messages=messages,
                         max_tokens=ai_config.max_tokens,
-                        temperature=0.7,
+                        temperature=ai_config.temperature,
+                        top_p=ai_config.top_p,
                         model=settings.get('model')
                     )
                     if response.content:
@@ -3143,7 +3147,8 @@ async def ai_slide_native_dialog_stream(
                     async for chunk in provider.stream_chat_completion(
                         messages=messages,
                         max_tokens=ai_config.max_tokens,
-                        temperature=0.7,
+                        temperature=ai_config.temperature,
+                        top_p=ai_config.top_p,
                         model=settings.get("model"),
                     ):
                         if chunk:
@@ -3153,7 +3158,8 @@ async def ai_slide_native_dialog_stream(
                     response = await provider.chat_completion(
                         messages=messages,
                         max_tokens=ai_config.max_tokens,
-                        temperature=0.7,
+                        temperature=ai_config.temperature,
+                        top_p=ai_config.top_p,
                         model=settings.get("model"),
                     )
                     if response.content:
@@ -3364,7 +3370,8 @@ async def ai_optimize_outline(
         # 调用AI生成回复
         response = await provider.chat_completion(
             messages=messages,
-            temperature=0.7,
+            temperature=ai_config.temperature,
+            top_p=ai_config.top_p,
             model=settings.get('model')
         )
         
@@ -3944,7 +3951,8 @@ async def ai_enhance_bullet_point(
         response = await provider.text_completion(
             prompt=context,
             max_tokens=ai_config.max_tokens // 2,  # 使用较小的token限制
-            temperature=0.7,
+            temperature=ai_config.temperature,
+            top_p=ai_config.top_p,
             model=settings.get('model')
         )
 
@@ -4036,7 +4044,8 @@ async def ai_enhance_all_bullet_points(
         response = await provider.text_completion(
             prompt=context,
             max_tokens=ai_config.max_tokens,  # 使用完整的token限制，因为要处理多个要点
-            temperature=0.7,
+            temperature=ai_config.temperature,
+            top_p=ai_config.top_p,
             model=settings.get('model')
         )
 
