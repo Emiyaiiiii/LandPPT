@@ -286,14 +286,23 @@ async def web_ai_config(
     if (isinstance(current_provider, str) and current_provider.strip().lower() == "gemini"):
         current_provider = "google"
 
+    supported_providers = [
+        "openai",
+        "deepseek",
+        "kimi",
+        "minimax",
+        "anthropic",
+        "google",
+        "ollama",
+        "302ai",
+    ]
+
     return templates.TemplateResponse("ai_config.html", {
         "request": request,
         "current_provider": current_provider,
         "available_providers": ai_config.get_available_providers(),
-        "provider_status": {
-            provider: ai_config.is_provider_available(provider)
-            for provider in ai_config.get_available_providers()
-        },
+        "supported_providers": supported_providers,
+        "provider_status": {provider: ai_config.is_provider_available(provider) for provider in supported_providers},
         "current_config": current_config,
         "user": user.to_dict()
     })
@@ -422,8 +431,7 @@ async def test_openai_provider_proxy(
                         "role": "user",
                         "content": "Say 'Hello, I am working!' in exactly 5 words."
                     }
-                ],
-                "temperature": 0
+                ]
             }
             
             async with session.post(chat_url, headers=headers, json=payload, timeout=30) as response:
@@ -514,7 +522,6 @@ async def test_anthropic_provider_proxy(
                     }
                 ],
                 "max_tokens": 1024,
-                "temperature": 0
             }
 
             async with session.post(messages_url, headers=headers, json=payload, timeout=30) as response:

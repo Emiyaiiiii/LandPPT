@@ -999,6 +999,9 @@ class AIProviderFactory:
 
     _providers = {
         "openai": OpenAIProvider,
+        "deepseek": OpenAIProvider,  # OpenAI-compatible
+        "kimi": OpenAIProvider,  # OpenAI-compatible
+        "minimax": OpenAIProvider,  # OpenAI-compatible
         "anthropic": AnthropicProvider,
         "google": GoogleProvider,
         "gemini": GoogleProvider,  # Alias for google

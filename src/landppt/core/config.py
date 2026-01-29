@@ -37,6 +37,19 @@ class AIConfig(BaseSettings):
     openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
     openai_base_url: str = Field(default="https://api.openai.com/v1", env="OPENAI_BASE_URL")
     openai_model: str = Field(default="gpt-3.5-turbo", env="OPENAI_MODEL")
+
+    # OpenAI-Compatible Providers
+    deepseek_api_key: Optional[str] = Field(default=None, env="DEEPSEEK_API_KEY")
+    deepseek_base_url: str = Field(default="https://api.deepseek.com/v1", env="DEEPSEEK_BASE_URL")
+    deepseek_model: str = Field(default="deepseek-chat", env="DEEPSEEK_MODEL")
+
+    kimi_api_key: Optional[str] = Field(default=None, env="KIMI_API_KEY")
+    kimi_base_url: str = Field(default="https://api.moonshot.cn/v1", env="KIMI_BASE_URL")
+    kimi_model: str = Field(default="kimi-k2.5", env="KIMI_MODEL")
+
+    minimax_api_key: Optional[str] = Field(default=None, env="MINIMAX_API_KEY")
+    minimax_base_url: str = Field(default="https://api.minimaxi.com/v1", env="MINIMAX_BASE_URL")
+    minimax_model: str = Field(default="MiniMax-M2.1", env="MINIMAX_MODEL")
     
     # Anthropic Configuration
     anthropic_api_key: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
@@ -180,6 +193,12 @@ class AIConfig(BaseSettings):
         provider_key = self._normalize_provider(provider)
         if provider_key == "openai":
             return self._normalize_optional_str(self.openai_model)
+        if provider_key == "deepseek":
+            return self._normalize_optional_str(self.deepseek_model)
+        if provider_key == "kimi":
+            return self._normalize_optional_str(self.kimi_model)
+        if provider_key == "minimax":
+            return self._normalize_optional_str(self.minimax_model)
         if provider_key == "anthropic":
             return self._normalize_optional_str(self.anthropic_model)
         if provider_key in ("google", "gemini"):
@@ -241,6 +260,30 @@ class AIConfig(BaseSettings):
                 "temperature": self.temperature,
                 "top_p": self.top_p,
             },
+            "deepseek": {
+                "api_key": self.deepseek_api_key,
+                "base_url": self.deepseek_base_url,
+                "model": self.deepseek_model,
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+                "top_p": self.top_p,
+            },
+            "kimi": {
+                "api_key": self.kimi_api_key,
+                "base_url": self.kimi_base_url,
+                "model": self.kimi_model,
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+                "top_p": self.top_p,
+            },
+            "minimax": {
+                "api_key": self.minimax_api_key,
+                "base_url": self.minimax_base_url,
+                "model": self.minimax_model,
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+                "top_p": self.top_p,
+            },
             "anthropic": {
                 "api_key": self.anthropic_api_key,
                 "base_url": self.anthropic_base_url,
@@ -291,6 +334,12 @@ class AIConfig(BaseSettings):
         # Built-in providers
         if provider == "openai":
             return bool(config.get("api_key"))
+        elif provider == "deepseek":
+            return bool(config.get("api_key"))
+        elif provider == "kimi":
+            return bool(config.get("api_key"))
+        elif provider == "minimax":
+            return bool(config.get("api_key"))
         elif provider == "anthropic":
             return bool(config.get("api_key"))
         elif provider == "google" or provider == "gemini":
@@ -309,7 +358,7 @@ class AIConfig(BaseSettings):
 
         # Add built-in providers. Note: "gemini" is an alias for "google" (same config),
         # so we only expose a single canonical provider name here to avoid duplicates in UIs.
-        for provider in ["openai", "anthropic", "google", "gemini", "ollama", "302ai"]:
+        for provider in ["openai", "deepseek", "kimi", "minimax", "anthropic", "google", "gemini", "ollama", "302ai"]:
             if not self.is_provider_available(provider):
                 continue
 

@@ -277,7 +277,7 @@ class EnhancedPPTService(PPTService):
             if provider_config.get("temperature"):
                 os.environ["TEMPERATURE"] = str(provider_config["temperature"])
 
-            if current_provider == "openai":
+            if current_provider in ("openai", "deepseek", "kimi", "minimax"):
                 if provider_config.get("api_key"):
                     os.environ["OPENAI_API_KEY"] = provider_config["api_key"]
                 if provider_config.get("base_url"):
@@ -285,7 +285,7 @@ class EnhancedPPTService(PPTService):
                 if provider_config.get("model"):
                     os.environ["OPENAI_MODEL"] = provider_config["model"]
 
-                logger.info(f"已配置summeryanyfile OpenAI API: model={provider_config.get('model')}, base_url={provider_config.get('base_url')}")
+                logger.info(f"已配置summeryanyfile OpenAI兼容API: provider={current_provider}, model={provider_config.get('model')}, base_url={provider_config.get('base_url')}")
 
             elif current_provider == "anthropic":
                 if provider_config.get("api_key"):
