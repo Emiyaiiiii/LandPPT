@@ -1434,7 +1434,7 @@ async def regenerate_outline(
         except:
             pass  # If no body or invalid JSON, use empty dict
         
-        custom_requirements = request_data.get('custom_requirements', '')
+        custom_requirements = (request_data.get('custom_requirements') or '').strip()
         
         project = await ppt_service.project_manager.get_project(project_id)
         if not project:
@@ -1456,7 +1456,7 @@ async def regenerate_outline(
             language = project.project_metadata.get("language", "zh")
         
         # 如果提供了自定义需求，将其追加或覆盖原有需求
-        final_requirements = confirmed_requirements.get('requirements', project.requirements)
+        final_requirements = confirmed_requirements.get('requirements', project.requirements) or ''
         if custom_requirements:
             # 将自定义需求追加到原有需求
             if final_requirements:
@@ -1497,7 +1497,7 @@ async def regenerate_outline(
                 filename=confirmed_requirements.get('filename', 'uploaded_file'),
                 topic=project_request.topic,
                 scenario=project_request.scenario,
-                requirements=confirmed_requirements.get('requirements', ''),
+                requirements=final_requirements,
                 target_audience=confirmed_requirements.get('target_audience', '普通大众'),
                 language=language,
                 page_count_mode=page_count_settings.get('mode', 'ai_decide'),
