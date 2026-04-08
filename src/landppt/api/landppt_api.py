@@ -182,7 +182,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "service": "LandPPT API",
+        "service": "API",
         "version": "0.1.0",
         "ai_provider": ai_config.default_ai_provider,
         "available_providers": ai_config.get_available_providers()

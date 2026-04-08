@@ -2,7 +2,7 @@
 # Multi-stage build for minimal image size
 
 # Build stage
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.11-bookworm AS builder
 
 # Set environment variables for build
 ENV PYTHONUNBUFFERED=1 \
@@ -55,7 +55,7 @@ RUN set -eux; \
     PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright /opt/venv/bin/python -m playwright install chromium
 
 # Production stage
-FROM python:3.11-slim-bookworm AS production
+FROM python:3.11-bookworm AS production
 
 ARG TARGETARCH
 

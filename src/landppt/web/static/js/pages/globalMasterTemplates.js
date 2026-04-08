@@ -284,6 +284,9 @@ function setIframeContent(iframe, htmlTemplate, title = '') {
 </html>`;
     }
 
+    const baseUrl = window.location.origin;
+    previewHtml = previewHtml.replace(/(src|href)="\//g, `$1="${baseUrl}/`);
+
     const blob = new Blob([previewHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     iframe.onload = () => setTimeout(() => URL.revokeObjectURL(url), 1500);

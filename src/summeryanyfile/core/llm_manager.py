@@ -114,7 +114,7 @@ class CustomChatAnthropic(BaseChatModel):
 
                 # 第三方API可能需要额外的header
                 if is_third_party:
-                    headers["x-title"] = "LandPPT"
+                    headers["x-title"] = "PPT AGENT"
 
                 logger.info(f"CustomChatAnthropic: trying auth method={auth_name}")
 

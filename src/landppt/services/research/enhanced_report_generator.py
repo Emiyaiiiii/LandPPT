@@ -228,7 +228,7 @@ class EnhancedReportGenerator:
         # Footer
         content.append("---")
         content.append("")
-        content.append("*本报告由 LandPPT 增强研究系统生成*")
+        content.append("*本报告由增强研究系统生成*")
         content.append("")
         content.append(f"**生成时间**: {datetime.now().strftime('%Y年%m月%d日 %H:%M:%S')}")
         

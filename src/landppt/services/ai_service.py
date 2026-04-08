@@ -182,11 +182,11 @@ class AIService:
         except Exception as e:
             logger.error(f"Error in general completion request: {e}")
             # Fallback to simple response
-            return f"Based on your prompt: {prompt}\n\nI'm LandPPT AI, specialized in presentation generation. If you'd like to create a presentation about this topic, I'd be happy to help!"
+            return f"Based on your prompt: {prompt}\n\nI'm PPT AI, specialized in presentation generation. If you'd like to create a presentation about this topic, I'd be happy to help!"
 
     def _get_ppt_system_prompt(self) -> str:
         """Get system prompt for PPT generation"""
-        return """You are LandPPT AI, an expert presentation generation assistant. Your role is to help users create professional, engaging PowerPoint presentations.
+        return """You are PPT AI, an expert presentation generation assistant. Your role is to help users create professional, engaging PowerPoint presentations.
 
 Key capabilities:
 1. Generate structured PPT outlines with clear sections
@@ -206,7 +206,7 @@ Be helpful, professional, and focused on creating high-quality presentations."""
 
     def _get_general_system_prompt(self) -> str:
         """Get system prompt for general assistance"""
-        return """You are LandPPT AI, a helpful assistant specialized in presentation generation. While you can provide general assistance, your primary expertise is in creating professional PowerPoint presentations.
+        return """You are PPT AI, a helpful assistant specialized in presentation generation. While you can provide general assistance, your primary expertise is in creating professional PowerPoint presentations.
 
 When users ask non-PPT questions:
 - Provide helpful, accurate information
@@ -219,7 +219,7 @@ Your goal is to be helpful while gently guiding users toward your presentation g
 
     def _create_ppt_prompt(self, user_prompt: str) -> str:
         """Create enhanced prompt for PPT generation"""
-        return f"""As LandPPT AI, help the user create a professional presentation based on this request:
+        return f"""As PPT AI, help the user create a professional presentation based on this request:
 
 "{user_prompt}"
 
@@ -234,7 +234,7 @@ Make your response practical and actionable for creating an effective presentati
 
     def _create_general_prompt(self, user_prompt: str) -> str:
         """Create enhanced prompt for general assistance"""
-        return f"""As LandPPT AI, respond to this user query:
+        return f"""As PPT AI, respond to this user query:
 
 "{user_prompt}"
 
@@ -248,7 +248,7 @@ Provide a helpful response, and if relevant, suggest how this topic could be tur
     def _generate_fallback_general_response(self, prompt: str) -> str:
         """Generate fallback general response when AI fails"""
         if "hello" in prompt.lower() or "hi" in prompt.lower():
-            return "Hello! I'm LandPPT AI, your presentation generation assistant. How can I help you create an amazing presentation today?"
+            return "Hello! I'm PPT AI, your presentation generation assistant. How can I help you create an amazing presentation today?"
         elif "help" in prompt.lower():
             return """I can help you create professional presentations! Here's what I can do:
 

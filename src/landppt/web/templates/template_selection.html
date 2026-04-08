@@ -1219,14 +1219,15 @@
 
         title.textContent = `模板预览 - ${templateName}`;
 
-        // Create blob URL for the HTML content
-        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const baseUrl = window.location.origin;
+        const fixedHtmlContent = htmlContent.replace(/(src|href)="\//g, `$1="${baseUrl}/`);
+
+        const blob = new Blob([fixedHtmlContent], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
 
         frame.src = url;
         modal.style.display = 'flex';
 
-        // Clean up the blob URL after a delay
         setTimeout(() => {
             URL.revokeObjectURL(url);
         }, 1000);
@@ -1406,7 +1407,9 @@
 </html>`;
                 }
 
-                // Create a blob URL for the HTML content
+                const baseUrl = window.location.origin;
+                previewHtml = previewHtml.replace(/(src|href)="\//g, `$1="${baseUrl}/`);
+
                 const blob = new Blob([previewHtml], { type: 'text/html' });
                 const url = URL.createObjectURL(blob);
 

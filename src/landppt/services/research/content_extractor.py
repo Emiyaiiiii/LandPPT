@@ -50,7 +50,7 @@ class WebContentExtractor:
     def __init__(self):
         self.timeout = ai_config.research_extraction_timeout
         self.max_content_length = ai_config.research_max_content_length
-        self.user_agent = "LandPPT Research Bot 1.0"
+        self.user_agent = "PPT AGENT Research Bot 1.0"
         
         # Content selectors for different types of content
         self.content_selectors = [

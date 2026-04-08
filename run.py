@@ -43,7 +43,7 @@ def main():
         "access_log": True,
     }
     
-    print("🚀 Starting LandPPT Server...")
+    print("🚀 Starting PPT AGENT Server...")
     print(f"📍 Host: {config['host']}")
     print(f"🔌 Port: {config['port']}")
     print(f"🔄 Reload: {config['reload']}")

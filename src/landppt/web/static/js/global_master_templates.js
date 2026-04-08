@@ -305,12 +305,12 @@ async function startGeneration(requestData) {
 function showTemplatePreview(htmlTemplate) {
     const iframe = document.getElementById('generatedTemplateIframe');
     if (iframe) {
-        // 创建一个blob URL来显示HTML内容
-        const blob = new Blob([htmlTemplate], { type: 'text/html' });
+        const baseUrl = window.location.origin;
+        const fixedHtmlTemplate = htmlTemplate.replace(/(src|href)="\//g, `$1="${baseUrl}/`);
+        const blob = new Blob([fixedHtmlTemplate], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         iframe.src = url;
 
-        // 清理之前的URL
         iframe.onload = () => {
             setTimeout(() => {
                 URL.revokeObjectURL(url);

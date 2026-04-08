@@ -105,21 +105,21 @@ async def list_models():
         "object": "list",
         "data": [
             {
-                "id": "landppt-v1",
+                "id": "ppt-v1",
                 "object": "model",
                 "created": 1677610602,
-                "owned_by": "landppt",
+                "owned_by": "ppt",
                 "permission": [],
-                "root": "landppt-v1",
+                "root": "ppt-v1",
                 "parent": None
             },
             {
-                "id": "landppt-ppt-generator",
+                "id": "ppt-ppt-generator",
                 "object": "model", 
                 "created": 1677610602,
-                "owned_by": "landppt",
+                "owned_by": "ppt",
                 "permission": [],
-                "root": "landppt-ppt-generator",
+                "root": "ppt-ppt-generator",
                 "parent": None
             }
         ]
