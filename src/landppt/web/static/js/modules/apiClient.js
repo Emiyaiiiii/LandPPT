@@ -4,9 +4,16 @@ const defaultHeaders = {
 
 async function request(url, options = {}) {
     const { method = 'GET', body, headers = {}, signal, responseType, returnResponse = false } = options;
+    
+    // Get token from sessionStorage
+    const token = sessionStorage.getItem('token');
+    
+    // Add token to headers if it exists
+    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+    
     const init = {
         method,
-        headers: body instanceof FormData ? headers : { ...defaultHeaders, ...headers },
+        headers: body instanceof FormData ? { ...headers, ...authHeaders } : { ...defaultHeaders, ...headers, ...authHeaders },
         body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
         signal,
         credentials: 'same-origin'

@@ -539,7 +539,7 @@ class AppConfig(BaseSettings):
     
     # Server Configuration
     host: str = Field(default="0.0.0.0", env="HOST")
-    port: int = Field(default=8000, env="PORT")
+    port: int = Field(default=8080, env="PORT")
     debug: bool = Field(default=True, env="DEBUG")
     reload: bool = Field(default=True, env="RELOAD")
     
@@ -548,6 +548,7 @@ class AppConfig(BaseSettings):
     
     # Security Configuration
     secret_key: str = Field(default="your-secret-key-here", env="SECRET_KEY")
+    django_secret_key: str = Field(default="your-django-secret-key-here", env="SECRET_KEY")
     access_token_expire_minutes: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     
     # File Upload Configuration
@@ -558,6 +559,7 @@ class AppConfig(BaseSettings):
     cache_ttl: int = Field(default=3600, env="CACHE_TTL")  # 1 hour
     
     model_config = {
+        "env_file": ".env",
         "case_sensitive": False,
         "extra": "ignore"
     }

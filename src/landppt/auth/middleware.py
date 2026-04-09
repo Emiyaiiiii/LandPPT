@@ -73,7 +73,46 @@ class AuthMiddleware:
         session_id = request.cookies.get("session_id")
         
         if not session_id:
-            # No session, redirect to login
+            # Try to get token from Authorization header
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+                # Validate token and get user
+                try:
+                    # Get database session
+                    db_gen = get_db()
+                    db = next(db_gen)
+                    
+                    try:
+                        # Use auth_service to validate token and get user
+                        user = self.auth_service.get_user_by_token(db, token)
+                        
+                        if user:
+                            # Add user to request state
+                            request.state.user = user
+                            
+                            # Create session for the user
+                            session_id = self.auth_service.create_session(db, user)
+                            
+                            # Continue with request
+                            response = await call_next(request)
+                            
+                            # Set session cookie
+                            response.set_cookie(
+                                "session_id",
+                                session_id,
+                                max_age=3600 * 24 * 7,  # 7 days
+                                httponly=True,
+                                samesite="lax"
+                            )
+                            
+                            return response
+                    finally:
+                        db.close()
+                except Exception as e:
+                    logger.error(f"Token validation error: {e}")
+            
+            # No valid session or token, redirect to login
             if path.startswith("/api/"):
                 # API endpoints return 401
                 return Response(
@@ -158,6 +197,12 @@ def get_current_user_optional(
     Get current user if authenticated, None otherwise.
     For use with FastAPI dependency injection.
     """
+    # Check if user is already set by middleware (from token authentication)
+    user = getattr(request.state, 'user', None)
+    if user:
+        return user
+    
+    # Fallback to session cookie authentication
     session_id = request.cookies.get("session_id")
     if not session_id:
         return None

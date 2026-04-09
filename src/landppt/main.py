@@ -131,10 +131,36 @@ else:
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    """Root endpoint - redirect to dashboard."""
-    from fastapi.responses import RedirectResponse
-
-    return RedirectResponse(url="/dashboard", status_code=302)
+    """Root endpoint - check auth and redirect."""
+    return HTMLResponse(
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>LandPPT</title>
+        </head>
+        <body>
+            <script type="module">
+                // Import auth utilities
+                import { checkAuth } from '/static/js/auth.js';
+                
+                // Check authentication and redirect
+                async function init() {
+                    const isAuth = await checkAuth();
+                    if (isAuth) {
+                        window.location.href = '/dashboard';
+                    } else {
+                        window.location.href = '/auth/login';
+                    }
+                }
+                
+                // Initialize
+                init();
+            </script>
+        </body>
+        </html>
+        """
+    )
 
 
 @app.get("/favicon.ico")

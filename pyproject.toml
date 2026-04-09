@@ -64,6 +64,7 @@ dependencies = [
     "playwright>=1.40.0",
     "apryse-sdk>=11.6.0",
     "langchain-community>=0.3.27",
+    "pyjwt>=2.10.1",
 ]
 
 [project.optional-dependencies]
@@ -86,6 +87,10 @@ test = [
 
 [project.scripts]
 landppt = "landppt.main:main"
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
 
 [project.urls]
 Homepage = "https://github.com/sligter/LandPPT"

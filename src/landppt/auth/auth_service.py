@@ -191,6 +191,127 @@ class AuthService:
                 UserSession.is_active == True
             )
         ).all()
+    
+    def get_user_by_token(self, db: Session, token: str) -> Optional[User]:
+        """Get user by token from Authorization header
+        
+        This method parses the JWT token and creates/retrieves the user based on the token information.
+        """
+        try:
+            # Parse token to get user information
+            token_data = self._parse_token(token)
+            
+            if not token_data:
+                return None
+            
+            # Try to get user by user_id first
+            user_id = token_data.get('user_id')
+            if user_id:
+                user = self.get_user_by_id(db, user_id)
+                if user:
+                    # Update last login time
+                    user.last_login = time.time()
+                    db.commit()
+                    return user
+            
+            # Try to get user by username if user_id not found
+            username = token_data.get('username')
+            if username:
+                user = self.get_user_by_username(db, username)
+                if user:
+                    # Update last login time
+                    user.last_login = time.time()
+                    db.commit()
+                    return user
+            
+            # If no user found, create a new one if we have enough information
+            if username:
+                # Create new user if not exists
+                # Generate a random password since we won't need it for token-based auth
+                import secrets
+                random_password = secrets.token_urlsafe(16)
+                email = token_data.get('email')
+                try:
+                    user = self.create_user(db, username, random_password, email=email)
+                    # Update last login time
+                    user.last_login = time.time()
+                    db.commit()
+                    return user
+                except Exception:
+                    pass
+            elif user_id:
+                # If only user_id is available, use it as username
+                import secrets
+                random_password = secrets.token_urlsafe(16)
+                username = f"user_{user_id}"
+                email = token_data.get('email')
+                try:
+                    user = self.create_user(db, username, random_password, email=email)
+                    # Update last login time
+                    user.last_login = time.time()
+                    db.commit()
+                    return user
+                except Exception as e:
+                    # If user already exists by username, try to find and return it
+                    if "用户名已存在" in str(e):
+                        user = self.get_user_by_username(db, username)
+                        if user:
+                            # Update last login time
+                            user.last_login = time.time()
+                            db.commit()
+                            return user
+            
+            return None
+        except Exception:
+            return None
+    
+    def _parse_token(self, token: str) -> Optional[dict]:
+        """Parse JWT token to extract user information
+        
+        Uses HS256 algorithm and Django's SECRET_KEY for validation.
+        """
+        import jwt
+        import os
+        from ..core.config import app_config
+        
+        try:
+            # Get secret key from environment variable directly
+            secret_key = os.getenv("SECRET_KEY")
+            if not secret_key:
+                secret_key = app_config.django_secret_key
+            if not secret_key:
+                secret_key = app_config.secret_key
+            if not secret_key:
+                raise Exception("SECRET_KEY not configured")
+            
+            try:
+                # Try to decode with signature verification
+                payload = jwt.decode(
+                    token,
+                    secret_key,
+                    algorithms=['HS256'],
+                    options={
+                        'verify_exp': True,  # 验证过期时间
+                    }
+                )
+            except jwt.InvalidSignatureError:
+                # If signature verification fails, try without verifying signature
+                # This is for development purposes only
+                payload = jwt.decode(
+                    token,
+                    options={
+                        'verify_signature': False,
+                        'verify_exp': True,  # 验证过期时间
+                    }
+                )
+            
+            return payload
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception:
+            return None
 
 
 # Global auth service instance

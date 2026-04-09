@@ -20,7 +20,7 @@ DEFAULT_TEMPLATE_HTML = """<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title }}</title>
     <script src="/static/lib/chart.js/chart.min.js"></script>
-    <script src="/static/lib/font-awesome/all.min.js"></script>
+    <script src="/static/lib/font-awesome/js/all.min.css"></script>
     <style>
         body {
             width: 1280px;
