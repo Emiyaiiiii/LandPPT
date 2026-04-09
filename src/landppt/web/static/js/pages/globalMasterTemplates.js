@@ -275,6 +275,8 @@ function setIframeContent(iframe, htmlTemplate, title = '') {
     previewHtml = previewHtml.replace(/\{\{\s*content\s*\}\}/g, '预览内容');
     previewHtml = previewHtml.replace(/\{\{\s*slide_number\s*\}\}/g, '1');
     previewHtml = previewHtml.replace(/\{\{\s*total_slides\s*\}\}/g, '1');
+    // Fix: Replace script tags that load CSS files with link tags
+    previewHtml = previewHtml.replace(/<script src="([^"]*\.css)"><\/script>/g, '<link rel="stylesheet" href="$1">');
 
     if (!previewHtml.includes('<html')) {
         previewHtml = `<!DOCTYPE html>
