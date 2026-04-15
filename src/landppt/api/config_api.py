@@ -498,7 +498,7 @@ async def get_landppt_models(
         if not api_key:
             return {
                 "success": False,
-                "error": "管理员尚未配置 LandPPT API Key"
+                "error": "管理员尚未配置 PPT AGENT API Key"
             }
         
         if not base_url:
@@ -539,7 +539,7 @@ async def get_landppt_models(
                     }
                     
     except Exception as e:
-        logger.error(f"Failed to get LandPPT models: {e}")
+        logger.error(f"Failed to get PPT AGENT models: {e}")
         return {
             "success": False,
             "error": f"获取模型列表失败: {str(e)}"
@@ -567,7 +567,7 @@ async def test_landppt_provider(
         if not api_key:
             return {
                 "success": False,
-                "error": "管理员尚未配置 LandPPT API Key"
+                "error": "管理员尚未配置 PPT AGENT API Key"
             }
         
         if not base_url:
@@ -602,20 +602,20 @@ async def test_landppt_provider(
                     data = await response.json()
                     return {
                         "success": True,
-                        "message": "LandPPT 提供者测试成功",
+                        "message": "PPT AGENT 提供者测试成功",
                         "model": model,
                         "response_preview": data.get("choices", [{}])[0].get("message", {}).get("content", "")[:50]
                     }
                 else:
                     error_text = await response.text()
-                    logger.error(f"LandPPT test failed: {response.status} - {error_text}")
+                    logger.error(f"PPT AGENT test failed: {response.status} - {error_text}")
                     return {
                         "success": False,
                         "error": f"测试失败: HTTP {response.status}"
                     }
                     
     except Exception as e:
-        logger.error(f"Failed to test LandPPT provider: {e}")
+        logger.error(f"Failed to test PPT AGENT provider: {e}")
         return {
             "success": False,
             "error": f"测试失败: {str(e)}"

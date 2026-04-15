@@ -710,7 +710,7 @@ def _build_user_ai_provider_config(
 
     if resolved_provider == "landppt":
         logger.info(
-            "LandPPT config retrieved - api_key present: %s, base_url: %s, model: %s",
+            "PPT AGENT config retrieved - api_key present: %s, base_url: %s, model: %s",
             bool(config.get("api_key")),
             config.get("base_url"),
             config.get("model"),

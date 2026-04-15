@@ -694,13 +694,14 @@ class AuthService:
         """Parse JWT token to extract user information
         
         Uses HS256 algorithm and Django's SECRET_KEY for validation.
+        For external system tokens, use the SECRET_KEY from .env file to verify signature.
         """
         import jwt
         import os
         from ..core.config import app_config
         
         try:
-            # Get secret key from environment variable directly
+            # Get secret key from environment variable or app config
             secret_key = os.getenv("SECRET_KEY")
             if not secret_key:
                 secret_key = app_config.django_secret_key
@@ -709,33 +710,18 @@ class AuthService:
             if not secret_key:
                 raise Exception("SECRET_KEY not configured")
             
-            try:
-                # Try to decode with signature verification
-                payload = jwt.decode(
-                    token,
-                    secret_key,
-                    algorithms=['HS256'],
-                    options={
-                        'verify_exp': True,  # 验证过期时间
-                    }
-                )
-            except jwt.InvalidSignatureError:
-                # If signature verification fails, try without verifying signature
-                # This is for development purposes only
-                payload = jwt.decode(
-                    token,
-                    options={
-                        'verify_signature': False,
-                        'verify_exp': True,  # 验证过期时间
-                    }
-                )
-            
+            # Decode token with signature verification using HS256 algorithm
+            payload = jwt.decode(
+                token,
+                secret_key,
+                algorithms=['HS256'],
+                options={
+                    'verify_exp': True,  # 验证过期时间
+                }
+            )
             return payload
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error parsing token: {e}")
             return None
 
 

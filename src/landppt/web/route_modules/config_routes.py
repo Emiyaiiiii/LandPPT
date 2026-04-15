@@ -548,14 +548,14 @@ async def get_landppt_models(
         base_url = system_config.get("landppt_base_url", "")
         
         if not api_key or not base_url:
-            return {"success": False, "error": "LandPPT 系统配置未设置", "models": []}
+            return {"success": False, "error": "PPT AGENT 系统配置未设置", "models": []}
         
         # Ensure base URL ends with /v1
         if not base_url.endswith('/v1'):
             base_url = base_url.rstrip('/') + '/v1'
         
         models_url = f"{base_url}/models"
-        logger.info(f"Fetching LandPPT models from: {models_url}")
+        logger.info(f"Fetching PPT AGENT models from: {models_url}")
         timeout_seconds = await _get_llm_timeout_seconds_for_user(user.id)
         
         async with aiohttp.ClientSession() as session:
@@ -576,14 +576,14 @@ async def get_landppt_models(
                     if 'data' in data and isinstance(data['data'], list):
                         models = sorted([m['id'] for m in data['data'] if m.get('id')])
                     
-                    logger.info(f"Successfully fetched {len(models)} LandPPT models")
+                    logger.info(f"Successfully fetched {len(models)} PPT AGENT models")
                     return {"success": True, "models": models}
                 else:
                     error_text = await response.text()
-                    logger.error(f"Failed to fetch LandPPT models: {response.status} - {error_text}")
+                    logger.error(f"Failed to fetch PPT AGENT models: {response.status} - {error_text}")
                     return {"success": False, "error": f"请求失败: {response.status}", "models": []}
     except Exception as e:
-        logger.error(f"Error fetching LandPPT models: {e}")
+        logger.error(f"Error fetching PPT AGENT models: {e}")
         return {"success": False, "error": str(e), "models": []}
 
 

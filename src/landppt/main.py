@@ -39,7 +39,7 @@ logging.getLogger('sqlalchemy.dialects').setLevel(logging.WARNING)
 
 # Create FastAPI app
 app = FastAPI(
-    title="LandPPT API",
+    title="PPT AGENT API",
     description="AI-powered PPT generation platform with OpenAI-compatible API",
     version="0.1.0",
     docs_url="/docs" if app_config.enable_api_docs else None,
@@ -145,7 +145,7 @@ async def root():
         <!DOCTYPE html>
         <html>
         <head>
-            <title>LandPPT</title>
+            <title>PPT AGENT</title>
         </head>
         <body>
             <script type="module">
@@ -182,7 +182,7 @@ async def favicon():
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "LandPPT API"}
+    return {"status": "healthy", "service": "PPT AGENT API"}
 
 if __name__ == "__main__":
     uvicorn.run(

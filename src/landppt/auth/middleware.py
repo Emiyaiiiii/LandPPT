@@ -221,46 +221,48 @@ class AuthMiddleware:
                 try:
                     user: Optional[User] = None
                     session_id = _extract_session_id(request)
-                    if session_id:
-                        # Try to get token from Authorization header
-                        auth_header = request.headers.get("Authorization")
-                        if auth_header and auth_header.startswith("Bearer "):
-                            token = auth_header.split(" ")[1]
-                            # Validate token and get user
+                    
+                    # Try to get token from Authorization header (always check, not just when session_id exists)
+                    auth_header = request.headers.get("Authorization")
+                    if auth_header and auth_header.startswith("Bearer "):
+                        token = auth_header.split(" ")[1]
+                        # Validate token and get user
+                        try:
+                            # Get database session
+                            db_gen = get_db()
+                            db = next(db_gen)
+                            
                             try:
-                                # Get database session
-                                db_gen = get_db()
-                                db = next(db_gen)
+                                # Use auth_service to validate token and get user
+                                user = self.auth_service.get_user_by_token(db, token)
                                 
-                                try:
-                                    # Use auth_service to validate token and get user
-                                    user = self.auth_service.get_user_by_token(db, token)
+                                if user:
+                                    # Add user to request state
+                                    request.state.user = user
                                     
-                                    if user:
-                                        # Add user to request state
-                                        request.state.user = user
-                                        
-                                        # Create session for the user
-                                        session_id = self.auth_service.create_session(db, user)
-                                        
-                                        # Continue with request
-                                        response = await call_next(request)
-                                        
-                                        # Set session cookie
-                                        response.set_cookie(
-                                            "session_id",
-                                            session_id,
-                                            max_age=3600 * 24 * 7,  # 7 days
-                                            httponly=True,
-                                            samesite="lax"
-                                        )
-                                        
-                                        return response
-                                finally:
-                                    db.close()
-                            except Exception as e:
-                                logger.error(f"Token validation error: {e}")
+                                    # Create session for the user
+                                    session_id = self.auth_service.create_session(db, user)
+                                    
+                                    # Continue with request
+                                    response = await call_next(request)
+                                    
+                                    # Set session cookie
+                                    response.set_cookie(
+                                        "session_id",
+                                        session_id,
+                                        max_age=3600 * 24 * 7,  # 7 days
+                                        httponly=True,
+                                        samesite="lax"
+                                    )
+                                    
+                                    return response
+                            finally:
+                                db.close()
+                        except Exception as e:
+                            logger.error(f"Token validation error: {e}")
 
+                    # If no token or token validation failed, try session-based authentication
+                    if not user and session_id:
                         user = await self._get_user_from_session_cache(session_id)
 
                     if not user:
@@ -350,9 +352,15 @@ def get_current_user_optional(
 
     auth_service = get_auth_service()
 
-    # Try machine API key auth.
+    # Try token authentication first (for external system tokens)
     api_key = _extract_api_key(request)
     if api_key:
+        # First try to authenticate using token authentication (for external system tokens)
+        user = auth_service.get_user_by_token(db, api_key)
+        if user:
+            request.state.user = user
+            return user
+        # If token authentication fails, try API key authentication
         user = auth_service.get_user_by_api_key(db, api_key)
         if user:
             request.state.user = user

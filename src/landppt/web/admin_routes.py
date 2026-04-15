@@ -341,7 +341,7 @@ async def _fetch_landppt_models_with_credentials(api_key: str, base_url: str, ti
         ) as response:
             if response.status != 200:
                 error_text = await response.text()
-                logger.error("Failed to fetch system LandPPT models: %s - %s", response.status, error_text)
+                logger.error("Failed to fetch system PPT AGENT models: %s - %s", response.status, error_text)
                 raise HTTPException(status_code=400, detail=f"获取模型列表失败: HTTP {response.status}")
 
             payload = await response.json(content_type=None)
@@ -408,7 +408,7 @@ async def get_system_landppt_models(
         base_url = (data.base_url or "").strip() or str(system_config.get("landppt_base_url") or "").strip()
 
         if not api_key:
-            return {"success": False, "error": "请先填写 LandPPT API Key", "models": []}
+            return {"success": False, "error": "请先填写 PPT AGENT API Key", "models": []}
 
         timeout_seconds = await get_user_llm_timeout_seconds(user.id)
         models = await _fetch_landppt_models_with_credentials(
@@ -425,7 +425,7 @@ async def get_system_landppt_models(
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("Failed to fetch system LandPPT models: %s", exc)
+        logger.error("Failed to fetch system PPT AGENT models: %s", exc)
         raise HTTPException(status_code=500, detail=f"获取模型列表失败: {exc}")
 
 
@@ -638,14 +638,14 @@ async def test_smtp_config(
                 params: resend.Emails.SendParams = {
                     "from": from_value,
                     "to": [data.test_email],
-                    "subject": "LandPPT Resend 测试邮件",
+                    "subject": "PPT AGENT Resend 测试邮件",
                     "html": """
                     <html>
                     <body style="font-family: Arial, sans-serif; padding: 20px;">
                         <h2>🎉 Resend 配置测试成功！</h2>
-                        <p>如果您收到这封邮件，说明 LandPPT 的 Resend 邮件服务已正确配置。</p>
+                        <p>如果您收到这封邮件，说明 PPT AGENT 的 Resend 邮件服务已正确配置。</p>
                         <hr>
-                        <p style="color: #666; font-size: 12px;">此邮件由 LandPPT 管理后台发送</p>
+                        <p style="color: #666; font-size: 12px;">此邮件由 PPT AGENT 管理后台发送</p>
                     </body>
                     </html>
                     """,
@@ -669,7 +669,7 @@ async def test_smtp_config(
 
     try:
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = 'LandPPT SMTP 测试邮件'
+        msg['Subject'] = 'PPT AGENT SMTP 测试邮件'
         msg['From'] = f"{data.smtp_from_name} <{data.smtp_from_email or data.smtp_user}>"
         msg['To'] = data.test_email
 
@@ -677,9 +677,9 @@ async def test_smtp_config(
         <html>
         <body style="font-family: Arial, sans-serif; padding: 20px;">
             <h2>🎉 SMTP 配置测试成功！</h2>
-            <p>如果您收到这封邮件，说明 LandPPT 的 SMTP 邮件服务已正确配置。</p>
+            <p>如果您收到这封邮件，说明 PPT AGENT 的 SMTP 邮件服务已正确配置。</p>
             <hr>
-            <p style="color: #666; font-size: 12px;">此邮件由 LandPPT 管理后台发送</p>
+            <p style="color: #666; font-size: 12px;">此邮件由 PPT AGENT 管理后台发送</p>
         </body>
         </html>
         """

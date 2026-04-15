@@ -53,7 +53,7 @@ def _fmt_seconds(value: float) -> str:
 
 
 def print_markdown_summary(summary: Dict[str, Any], *, success: bool) -> None:
-    title = "## LandPPT Workflow Result" if success else "## LandPPT Workflow Failed"
+    title = "## PPT AGENT Workflow Result" if success else "## LandPPT Workflow Failed"
     safe_print(title)
     safe_print("")
     safe_print(f"- success: `{str(bool(success)).lower()}`")
@@ -568,7 +568,7 @@ def export_pdf_and_publish(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run and verify full LandPPT API workflow with user API key."
+        description="Run and verify full PPT AGENT API workflow with user API key."
     )
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--api-key", default="")

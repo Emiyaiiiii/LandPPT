@@ -227,7 +227,7 @@
 
         // 初始化搜索选择框
         function initSearchableSelects() {
-            // 初始化LandPPT模型搜索选择框
+            // 初始化PPT AGENT模型搜索选择框
             if (document.getElementById('landppt_model_container')) {
                 landpptModelSelect = new SearchableSelect('landppt_model_container');
             }
@@ -370,7 +370,7 @@
             }
         }
 
-        // 测试 LandPPT 官方提供者（通过后端代理，API Key 不暴露给前端）
+        // 测试 PPT AGENT 官方提供者（通过后端代理，API Key 不暴露给前端）
         async function testLandPPTProvider(config) {
             try {
                 // 通过后端代理进行测试（API Key 不暴露给前端）
@@ -383,7 +383,7 @@
                 return result;
 
             } catch (error) {
-                console.error('测试 LandPPT 失败:', error);
+                console.error('测试 PPT AGENT 失败:', error);
                 return { success: false, error: error.message };
             }
         }
@@ -1105,7 +1105,7 @@
                 });
             });
 
-            // LandPPT 默认模型：若用户未配置，默认显示/保存为 MODEL1
+            // PPT AGENT 默认模型：若用户未配置，默认显示/保存为 MODEL1
             const landpptModelInput = document.getElementById('landppt_model_input');
             if (landpptModelInput && !landpptModelInput.value.trim()) {
                 landpptModelInput.value = 'MODEL1';

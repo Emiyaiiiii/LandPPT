@@ -209,10 +209,10 @@ async def send_verification_email(
     
     # Prepare email content
     if code_type == 'register':
-        subject = "LandPPT 注册验证码"
+        subject = "PPT AGENT 注册验证码"
         action = "注册账户"
     else:
-        subject = "LandPPT 密码重置验证码"
+        subject = "PPT AGENT 密码重置验证码"
         action = "重置密码"
     
     html_content = f"""
@@ -237,7 +237,7 @@ async def send_verification_email(
             <div class="code">{code}</div>
             <p class="info">验证码有效期为 {app_config.verification_code_expire_minutes} 分钟。如果您没有进行此操作，请忽略此邮件。</p>
             <div class="footer">
-                © LandPPT - AI PPT 生成平台
+                © PPT AGENT - AI PPT 生成平台
             </div>
         </div>
     </body>

@@ -16,7 +16,7 @@
         };
 
         const providerLabels = {
-            landppt: 'LandPPT',
+            landppt: 'PPT AGENT',
             openai: 'OpenAI',
             anthropic: 'Anthropic',
             google: 'Google Gemini',
@@ -320,11 +320,11 @@
             });
 
             if (!data.success) {
-                throw new Error(data.error || data.message || 'LandPPT 测试失败');
+                throw new Error(data.error || data.message || 'PPT AGENT 测试失败');
             }
 
             const preview = (data.response_preview || '').trim();
-            showToast(preview ? `LandPPT 测试成功：${preview}` : 'LandPPT 测试成功');
+            showToast(preview ? `PPT AGENT 测试成功：${preview}` : 'PPT AGENT 测试成功');
         }
 
         function renderSystemLandPptModels(models = []) {
@@ -383,11 +383,11 @@
             if (!statusEl) return;
 
             if (systemLandPptModels.length > 0) {
-                statusEl.textContent = `已加载 ${systemLandPptModels.length} 个 LandPPT 模型，可直接选择，也可以继续手动输入。`;
+                statusEl.textContent = `已加载 ${systemLandPptModels.length} 个 PPT AGENT 模型，可直接选择，也可以继续手动输入。`;
             } else if (hasLandPptConfig) {
-                statusEl.textContent = '当前凭据已填写，点击模型输入框右侧箭头即可拉取 LandPPT 模型列表。';
+                statusEl.textContent = '当前凭据已填写，点击模型输入框右侧箭头即可拉取 PPT AGENT 模型列表。';
             } else {
-                statusEl.textContent = 'LandPPT API Key 或 Base URL 可以留空；留空时不会覆盖用户自己的同名配置。';
+                statusEl.textContent = 'PPT AGENT API Key 或 Base URL 可以留空；留空时不会覆盖用户自己的同名配置。';
             }
         }
 
@@ -444,7 +444,7 @@
                 return systemLandPptModels;
             }
 
-            renderSystemLandPptDropdownState('正在加载 LandPPT 模型列表...');
+            renderSystemLandPptDropdownState('正在加载 PPT AGENT 模型列表...');
 
             const payload = collectSystemDefaultsPayload();
             const data = await requestJson('/admin/api/system-landppt-models', {
@@ -457,7 +457,7 @@
             });
 
             if (!data.success) {
-                throw new Error(data.error || '获取 LandPPT 模型列表失败');
+                throw new Error(data.error || '获取 PPT AGENT 模型列表失败');
             }
 
             const models = Array.isArray(data.models) ? data.models : [];
@@ -471,7 +471,7 @@
 
             updateSystemDefaultSummary();
             if (!silent) {
-                showToast(`已加载 ${models.length} 个 LandPPT 模型`);
+                showToast(`已加载 ${models.length} 个 PPT AGENT 模型`);
             }
             return models;
         }

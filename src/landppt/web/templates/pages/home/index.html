@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}LandPPT - AI PPT Generator{% endblock %}
+{% block title %}PPT AGENT - AI PPT Generator{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -106,10 +106,10 @@
 
 {% block content %}
 <div class="hero-section">
-    <h2>欢迎使用 LandPPT</h2>
+    <h2>欢迎使用 PPT AGENT</h2>
     <p>只需输入主题和需求，AI 即可自动生成专业的 PPT 演示文稿</p>
     {% if ai_provider %}
-    {% set provider_names = {'landppt': 'LandPPT', 'openai': 'OpenAI', 'anthropic': 'Anthropic Claude', 'google': 'Google Gemini', 'ollama': 'Ollama'} %}
+    {% set provider_names = {'landppt': 'PPT AGENT', 'openai': 'OpenAI', 'anthropic': 'Anthropic Claude', 'google': 'Google Gemini', 'ollama': 'Ollama'} %}
     <div class="provider-badge">
         <span>当前 AI 提供者: <strong>{{ provider_names.get(ai_provider, ai_provider) }}</strong></span>
         <a href="/ai-config" class="btn-outline"
