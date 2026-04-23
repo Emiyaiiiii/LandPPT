@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -7,15 +7,15 @@
     <title>PPT编辑器 - {{ project.title }}</title>
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
     <link rel="alternate icon" href="/favicon.ico">
-    <link href="/static/lib/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/lib/font-awesome/css/all.min.css" rel="stylesheet">
     <!-- CodeMirror CSS -->
-    <link rel="stylesheet" href="/static/lib/codemirror/codemirror.min.css">
-    <link rel="stylesheet" href="/static/lib/codemirror/theme/monokai.min.css">
-    <link rel="stylesheet" href="/static/lib/codemirror/theme/material.min.css">
-    <link rel="stylesheet" href="/static/lib/codemirror/theme/dracula.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/codemirror.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/monokai.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/material.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/dracula.min.css">
     <!-- CodeMirror Search Dialog CSS -->
-    <link rel="stylesheet" href="/static/lib/codemirror/addon/dialog/dialog.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/dialog.min.css">
     <style>
         :root {
             --surface-dark: #0f0f10;
@@ -5409,11 +5409,11 @@
     <script id="projectMetaScript"
         type="application/json">{{ {'status': project.status, 'outline': project.outline}|tojson|safe }}</script>
 
-    <script src="/static/lib/bootstrap/bootstrap.bundle.min.js"></script>
-    <script src="/static/lib/codemirror/codemirror.min.js"></script>
-    <script src="/static/lib/codemirror/addon/dialog/dialog.min.js"></script>
-    <script src="/static/lib/codemirror/addon/search/searchcursor.min.js"></script>
-    <script src="/static/lib/codemirror/addon/search/search.min.js"></script>
+    <script src="/static/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/lib/codemirror/js/codemirror.min.js"></script>
+    <script src="/static/lib/codemirror/js/dialog.min.js"></script>
+    <script src="/static/lib/codemirror/js/searchcursor.min.js"></script>
+    <script src="/static/lib/codemirror/js/search.min.js"></script>
     <script src="/static/js/dom-to-pptx.bundle.js?v=20260214-opacity-chain-v4"></script>
     <script>
         let currentSlideIndex = 0;
@@ -13484,21 +13484,21 @@
     </script>
 
     <!-- CodeMirror JavaScript -->
-    <script src="/static/lib/codemirror/codemirror.min.js"></script>
-    <script src="/static/lib/codemirror/mode/xml/xml.min.js"></script>
-    <script src="/static/lib/codemirror/mode/javascript/javascript.min.js"></script>
-    <script src="/static/lib/codemirror/mode/css/css.min.js"></script>
-    <script src="/static/lib/codemirror/mode/htmlmixed/htmlmixed.min.js"></script>
-    <script src="/static/lib/codemirror/addon/edit/closetag.min.js"></script>
-    <script src="/static/lib/codemirror/addon/edit/closebrackets.min.js"></script>
-    <script src="/static/lib/codemirror/addon/edit/matchtags.min.js"></script>
-    <script src="/static/lib/codemirror/addon/fold/foldcode.min.js"></script>
-    <script src="/static/lib/codemirror/addon/fold/foldgutter.min.js"></script>
-    <script src="/static/lib/codemirror/addon/fold/xml-fold.min.js"></script>
+    <script src="/static/lib/codemirror/js/codemirror.min.js"></script>
+    <script src="/static/lib/codemirror/js/xml.min.js"></script>
+    <script src="/static/lib/codemirror/js/javascript.min.js"></script>
+    <script src="/static/lib/codemirror/js/css.min.js"></script>
+    <script src="/static/lib/codemirror/js/htmlmixed.min.js"></script>
+    <script src="/static/lib/codemirror/js/closetag.min.js"></script>
+    <script src="/static/lib/codemirror/js/closebrackets.min.js"></script>
+    <script src="/static/lib/codemirror/js/matchtags.min.js"></script>
+    <script src="/static/lib/codemirror/js/foldcode.min.js"></script>
+    <script src="/static/lib/codemirror/js/foldgutter.min.js"></script>
+    <script src="/static/lib/codemirror/js/xml-fold.min.js"></script>
     <!-- CodeMirror Search功能 -->
-    <script src="/static/lib/codemirror/addon/dialog/dialog.min.js"></script>
-    <script src="/static/lib/codemirror/addon/search/searchcursor.min.js"></script>
-    <script src="/static/lib/codemirror/addon/search/search.min.js"></script>
+    <script src="/static/lib/codemirror/js/dialog.min.js"></script>
+    <script src="/static/lib/codemirror/js/searchcursor.min.js"></script>
+    <script src="/static/lib/codemirror/js/search.min.js"></script>
 
     <script>
         // 图片上传相关函数

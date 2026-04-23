@@ -2,15 +2,16 @@
 Main FastAPI application entry point
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 import uvicorn
 import asyncio
 import logging
 import os
 import sys
+from sqlalchemy.orm import Session
 from .api.openai_compat import router as openai_router
 from .api.landppt_api import router as landppt_router
 from .api.database_api import router as database_router
@@ -22,8 +23,10 @@ from .web import router as web_router
 from .web.admin_routes import router as admin_router
 from .web.community_routes import router as community_router
 from .web.credits_routes import router as credits_router
-from .auth import auth_router, create_auth_middleware
+from .auth import auth_router, create_auth_middleware, get_auth_service
+from .auth.middleware import _extract_api_key, _extract_session_id
 from .database.startup_initialization import run_startup_initialization
+from .database.database import get_db
 from .core.config import app_config
 
 # Configure logging
@@ -137,38 +140,99 @@ if os.path.exists(temp_dir):
 else:
     logger.warning(f"Temp directory not found: {temp_dir}")
 
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    """Root endpoint - check auth and redirect."""
-    return HTMLResponse(
-        """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>PPT AGENT</title>
-        </head>
-        <body>
-            <script type="module">
-                // Import auth utilities
-                import { checkAuth } from '/static/js/auth.js';
+@app.get("/")
+async def root(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Root endpoint - check auth and redirect.
+    
+    Supports two authentication methods:
+    1. Session cookie authentication (regular login)
+    2. External JWT token authentication (from URL parameter or Authorization header)
+    
+    Supports user switching when already logged in with ?token=xxx&switch_user=1
+    """
+    auth_service = get_auth_service()
+    
+    # Check for external token in URL parameter first
+    token = request.query_params.get('token')
+    switch_user = request.query_params.get('switch_user')
+    
+    # If no token in URL, check Authorization header
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+    
+    # If external token is provided, validate it and create session
+    if token:
+        try:
+            new_user = auth_service.get_user_by_token(db, token)
+            if new_user:
+                # Check if user is already logged in
+                current_user = None
+                existing_session_id = request.cookies.get("session_id")
+                logger.info(f"Token login attempt: new_user_id={new_user.id}, existing_session_id={existing_session_id}")
+                if existing_session_id:
+                    current_user = auth_service.get_user_by_session(db, existing_session_id)
+                    if current_user:
+                        logger.info(f"Current user found: current_user_id={current_user.id}, new_user_id={new_user.id}")
+                    else:
+                        logger.info("No current user found from existing session")
                 
-                // Check authentication and redirect
-                async function init() {
-                    const isAuth = await checkAuth();
-                    if (isAuth) {
-                        window.location.href = '/dashboard';
-                    } else {
-                        window.location.href = '/auth/login';
-                    }
-                }
+                # If same user and not explicitly switching, just redirect to dashboard
+                if current_user and current_user.id == new_user.id and not switch_user:
+                    logger.info(f"Same user login, redirecting to dashboard: user_id={new_user.id}")
+                    return RedirectResponse(url="/dashboard", status_code=302)
                 
-                // Initialize
-                init();
-            </script>
-        </body>
-        </html>
-        """
-    )
+                # If switching user, invalidate the old session first
+                if existing_session_id and current_user and current_user.id != new_user.id:
+                    auth_service.logout_user(db, existing_session_id)
+                    logger.info(f"Invalidated old session for user switch: old_user_id={current_user.id}, new_user_id={new_user.id}")
+                
+                # Create new session for the user (switches user if already logged in)
+                new_session_id = auth_service.create_session(db, new_user)
+                logger.info(f"Created new session: session_id={new_session_id} for user_id={new_user.id}")
+                
+                # Redirect to dashboard with session cookie
+                response = RedirectResponse(url="/dashboard", status_code=302)
+                
+                # Set cookie max_age based on session expiration
+                current_expire_minutes = auth_service._get_current_expire_minutes()
+                cookie_max_age = None if current_expire_minutes == 0 else current_expire_minutes * 60
+                
+                response.set_cookie(
+                    key="session_id",
+                    value=new_session_id,
+                    max_age=cookie_max_age,
+                    httponly=True,
+                    secure=False,  # Set to True in production with HTTPS
+                    samesite="lax"
+                )
+                
+                if current_user and current_user.id != new_user.id:
+                    logger.info(f"User switched from {current_user.username} to {new_user.username} via token at root")
+                else:
+                    logger.info(f"User {new_user.username} logged in via token at root")
+                return response
+            else:
+                # Token invalid, redirect to login with error
+                return RedirectResponse(url="/auth/login?error=登录链接已过期或无效", status_code=302)
+        except Exception as e:
+            logger.error(f"Token authentication error: {e}")
+            return RedirectResponse(url="/auth/login?error=自动登录失败，请手动登录", status_code=302)
+    
+    # Check for existing session cookie
+    session_id = request.cookies.get("session_id")
+    if session_id:
+        user = auth_service.get_user_by_session(db, session_id)
+        if user:
+            # User is authenticated via session, redirect to dashboard
+            return RedirectResponse(url="/dashboard", status_code=302)
+    
+    # Not authenticated, redirect to login page
+    return RedirectResponse(url="/auth/login", status_code=302)
 
 @app.get("/favicon.ico")
 async def favicon():

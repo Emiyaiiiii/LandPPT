@@ -6,7 +6,7 @@ services:
       args:
         - APT_DEBIAN_URL=${APT_DEBIAN_URL:-http://deb.debian.org/debian}
         - APT_SECURITY_URL=${APT_SECURITY_URL:-http://deb.debian.org/debian-security}
-    image: bradleylzh/landppt:latest
+    image: landppt:latest
     container_name: landppt
     # Chromium requires more shared memory than Docker's default 64MB
     shm_size: '4gb'

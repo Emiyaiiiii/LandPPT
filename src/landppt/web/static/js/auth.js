@@ -61,9 +61,70 @@ export function removeToken() {
 }
 
 /**
+ * Check if current page is a public page that doesn't require authentication
+ */
+function isPublicPage() {
+    const path = window.location.pathname;
+    const publicPaths = [
+        '/auth/login',
+        '/auth/register',
+        '/auth/forgot-password',
+        '/auth/reset-password',
+        '/auth/logout'
+    ];
+    return publicPaths.some(publicPath => path.startsWith(publicPath));
+}
+
+/**
+ * Check if current page is the root page
+ */
+function isRootPage() {
+    return window.location.pathname === '/';
+}
+
+/**
+ * Check if user is logged in via session cookie
+ * This function checks if the user is already authenticated by calling the backend
+ */
+async function checkSessionAuth() {
+    try {
+        const response = await fetch('/api/auth/check', {
+            credentials: 'same-origin' // Include cookies in the request
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            return data.authenticated === true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Session auth check failed:', error);
+        return false;
+    }
+}
+
+/**
  * Check authentication status and redirect if needed
+ * This function checks both token auth and session cookie auth
  */
 export async function checkAuth() {
+    // First, check session cookie auth (for regular login)
+    try {
+        const sessionResponse = await fetch('/api/auth/check', {
+            credentials: 'same-origin'
+        });
+        
+        if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            if (sessionData.authenticated === true) {
+                return true;
+            }
+        }
+    } catch (error) {
+        console.error('Session auth check failed:', error);
+    }
+
+    // Then, check token auth (for external token login)
     const token = getToken();
     if (token) {
         try {
@@ -93,9 +154,31 @@ export async function checkAuth() {
 
 /**
  * Initialize auth on page load
+ * This function is called on all pages to check authentication status
  */
 export async function initAuth() {
+    // Skip auth check on public pages to avoid infinite redirects
+    if (isPublicPage()) {
+        console.log('Skipping auth check on public page:', window.location.pathname);
+        return;
+    }
+
+    // Skip auth check on root page - backend handles the redirect
+    if (isRootPage()) {
+        console.log('Skipping auth check on root page - handled by backend');
+        return;
+    }
+
+    // First, check if user is already logged in via session cookie
+    const isSessionAuthenticated = await checkSessionAuth();
+    if (isSessionAuthenticated) {
+        console.log('User is already authenticated via session cookie');
+        return;
+    }
+
+    // If not authenticated via session, check for external token
     const token = getToken();
+    
     if (token) {
         try {
             // Validate token with backend
@@ -110,15 +193,20 @@ export async function initAuth() {
                 removeToken();
                 // Redirect to login page
                 window.location.href = '/auth/login';
+            } else {
+                // Token is valid, user is authenticated
+                // The backend middleware should have created a session
+                // Refresh the page to get the session cookie
+                console.log('Token valid, refreshing to get session cookie');
+                window.location.reload();
             }
         } catch (error) {
             console.error('Auth initialization failed:', error);
             removeToken();
-            // Redirect to login page
             window.location.href = '/auth/login';
         }
     } else {
-        // No token, redirect to login page
+        // No token and no session, redirect to login page
         window.location.href = '/auth/login';
     }
 }

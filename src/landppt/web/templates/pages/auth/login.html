@@ -7,7 +7,7 @@
     <title>登录 - PPT AGENT</title>
     <link rel="icon" type="image/svg+xml" href="/static/images/landppt-logo.png">
     <link rel="alternate icon" href="/static/images/favicon.ico">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/lib/font-awesome/css/all.min.css">
     <link rel="stylesheet" href="/static/css/pages/auth/auth.css">
     <link rel="stylesheet" href="/static/css/shared/site_notice.css">
     
@@ -524,6 +524,19 @@
     </script>
     <script src="/static/js/pages/auth/auth.js?v=20260321" defer></script>
     <script src="/static/js/pages/auth/auth.turnstile-lazy-fallback.js?v=20260214" defer></script>
+    <script>
+        // Clear sessionStorage token on logout
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('logout') === '1') {
+                sessionStorage.removeItem('token');
+                // Remove the logout parameter from URL
+                urlParams.delete('logout');
+                const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+                window.history.replaceState({}, document.title, newUrl);
+            }
+        })();
+    </script>
 </body>
 
 </html>

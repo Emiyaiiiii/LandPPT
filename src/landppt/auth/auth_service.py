@@ -621,73 +621,72 @@ class AuthService:
         """Get user by token from Authorization header
         
         This method parses the JWT token and creates/retrieves the user based on the token information.
+        
+        Note: The user_id in token is from external system, not the local database user id.
+        We should create a new user if not found, not search by username.
         """
         try:
             # Parse token to get user information
             token_data = self._parse_token(token)
             
             if not token_data:
+                logger.warning("Token parsing failed or returned no data")
                 return None
             
-            # Try to get user by user_id first
-            user_id = token_data.get('user_id')
-            if user_id:
-                user = self.get_user_by_id(db, user_id)
-                if user:
-                    # Update last login time
-                    user.last_login = time.time()
-                    db.commit()
-                    return user
+            logger.info(f"Token parsed successfully: token_data={token_data}")
             
-            # Try to get user by username if user_id not found
+            # Get external user_id from token (this is from external system)
+            external_user_id = token_data.get('user_id')
             username = token_data.get('username')
-            if username:
+            email = token_data.get('email')
+            
+            # Use external_user_id as username if username not provided
+            # This ensures each external user gets a unique local user
+            if not username and external_user_id:
+                username = f"ext_user_{external_user_id}"
+            
+            if not username:
+                logger.warning("No username or user_id found in token")
+                return None
+            
+            logger.info(f"Looking for user with username={username} (external_user_id={external_user_id})")
+            
+            # Try to find existing user by username
+            # Each external user should have a unique local user based on username
+            user = self.get_user_by_username(db, username)
+            if user:
+                logger.info(f"Found existing user: user_id={user.id}, username={user.username}")
+                # Update last login time
+                user.last_login = time.time()
+                db.commit()
+                return user
+            
+            # User not found, create a new one
+            logger.info(f"User not found, creating new user with username={username}")
+            import secrets
+            random_password = secrets.token_urlsafe(16)
+            
+            try:
+                user = self.create_user(db, username, random_password, email=email)
+                logger.info(f"Created new user: user_id={user.id}, username={user.username}")
+                # Update last login time
+                user.last_login = time.time()
+                db.commit()
+                return user
+            except Exception as e:
+                logger.error(f"Failed to create user with username={username}: {e}")
+                # If creation failed (e.g., user already exists due to race condition),
+                # try to find the user one more time
                 user = self.get_user_by_username(db, username)
                 if user:
-                    # Update last login time
+                    logger.info(f"Found user after failed creation: user_id={user.id}, username={user.username}")
                     user.last_login = time.time()
                     db.commit()
                     return user
+                return None
             
-            # If no user found, create a new one if we have enough information
-            if username:
-                # Create new user if not exists
-                # Generate a random password since we won't need it for token-based auth
-                import secrets
-                random_password = secrets.token_urlsafe(16)
-                email = token_data.get('email')
-                try:
-                    user = self.create_user(db, username, random_password, email=email)
-                    # Update last login time
-                    user.last_login = time.time()
-                    db.commit()
-                    return user
-                except Exception:
-                    pass
-            elif user_id:
-                # If only user_id is available, use it as username
-                import secrets
-                random_password = secrets.token_urlsafe(16)
-                username = f"user_{user_id}"
-                email = token_data.get('email')
-                try:
-                    user = self.create_user(db, username, random_password, email=email)
-                    # Update last login time
-                    user.last_login = time.time()
-                    db.commit()
-                    return user
-                except Exception as e:
-                    # If user already exists by username, try to find and return it
-                    if "用户名已存在" in str(e):
-                        user = self.get_user_by_username(db, username)
-                        if user:
-                            # Update last login time
-                            user.last_login = time.time()
-                            db.commit()
-                            return user
-            
-            return None
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error in get_user_by_token: {e}")
             return None
     
     def _parse_token(self, token: str) -> Optional[dict]:

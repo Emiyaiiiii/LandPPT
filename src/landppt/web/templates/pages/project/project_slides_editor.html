@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 
 <head>
@@ -7,15 +7,15 @@
     <title>PPT编辑器 - {{ project.title }}</title>
     <link rel="icon" type="image/svg+xml" href="/static/images/favicon.svg">
     <link rel="alternate icon" href="/favicon.ico">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/lib/font-awesome/css/all.min.css" rel="stylesheet">
     <!-- CodeMirror CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/codemirror.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/monokai.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/material.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/dracula.min.css">
     <!-- CodeMirror Search Dialog CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.css">
+    <link rel="stylesheet" href="/static/lib/codemirror/css/dialog.min.css">
     <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.css?v=20260408-split-preview-fix-v1">
     <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.aiSidebar.css?v=20260402-split">
     <link rel="stylesheet" href="/static/css/pages/project/slides_editor/projectSlidesEditor.nativeChat.css?v=20260402-split">
@@ -731,7 +731,7 @@
         'narrationLanguages': narration_languages | default(['zh', 'en']),
         'exportTitle': (project.title if project and project.title else 'presentation'),
     } | tojson | safe }}</script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/dom-to-pptx.bundle.js?v=20260405-font-resolve-v3"></script>
     <script src="/static/js/pages/project/slides_editor/projectEditorShareExport.js?v=20260328-phase3"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.core.js?v=20260408-split-preview-fix-v1"></script>
@@ -752,21 +752,21 @@
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.imageSelection.js?v=20260402-split"></script>
 
     <!-- CodeMirror JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closetag.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchtags.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/xml-fold.min.js"></script>
+    <script src="/static/lib/codemirror/js/codemirror.min.js"></script>
+    <script src="/static/lib/codemirror/js/xml.min.js"></script>
+    <script src="/static/lib/codemirror/js/javascript.min.js"></script>
+    <script src="/static/lib/codemirror/js/css.min.js"></script>
+    <script src="/static/lib/codemirror/js/htmlmixed.min.js"></script>
+    <script src="/static/lib/codemirror/js/closetag.min.js"></script>
+    <script src="/static/lib/codemirror/js/closebrackets.min.js"></script>
+    <script src="/static/lib/codemirror/js/matchtags.min.js"></script>
+    <script src="/static/lib/codemirror/js/foldcode.min.js"></script>
+    <script src="/static/lib/codemirror/js/foldgutter.min.js"></script>
+    <script src="/static/lib/codemirror/js/xml-fold.min.js"></script>
     <!-- CodeMirror Search功能 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/searchcursor.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/search.min.js"></script>
+    <script src="/static/lib/codemirror/js/dialog.min.js"></script>
+    <script src="/static/lib/codemirror/js/searchcursor.min.js"></script>
+    <script src="/static/lib/codemirror/js/search.min.js"></script>
 
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.tools.js?v=20260402-split"></script>
     <script src="/static/js/pages/project/slides_editor/projectSlidesEditor.imageLibrary.js?v=20260402-split"></script>

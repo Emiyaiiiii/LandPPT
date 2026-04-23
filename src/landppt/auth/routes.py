@@ -159,12 +159,77 @@ async def login_page(
     username: str = None,
     register_invite_code: str = None,
     tab: Optional[str] = None,
+    token: Optional[str] = None,
+    switch_user: Optional[str] = None,
+    db: Session = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service)
 ):
-    """Login page"""
-    # Check if user is already logged in using request.state.user set by middleware
-    user = get_current_user(request)
-    if user:
-        return RedirectResponse(url="/dashboard", status_code=302)
+    """Login page
+    
+    Supports automatic login via token parameter (e.g., ?token=xxx)
+    Supports switching user when already logged in (e.g., ?token=xxx&switch_user=1)
+    """
+    # Check for token-based auto-login first (allows user switching)
+    token_value = token or request.query_params.get('token')
+    if token_value:
+        try:
+            new_user = auth_service.get_user_by_token(db, token_value)
+            if new_user:
+                # Check if this is a different user than currently logged in
+                # Get current user directly from session cookie, not from request.state.user
+                # because request.state.user is set by middleware at request start
+                current_user = None
+                existing_session_id = request.cookies.get("session_id")
+                if existing_session_id:
+                    current_user = auth_service.get_user_by_session(db, existing_session_id)
+                
+                if current_user and current_user.id == new_user.id and not switch_user:
+                    # Same user, just redirect to dashboard
+                    return RedirectResponse(url="/dashboard", status_code=302)
+                
+                # If switching user, invalidate the old session first
+                if existing_session_id and current_user and current_user.id != new_user.id:
+                    auth_service.logout_user(db, existing_session_id)
+                    logger.info(f"Login page: Invalidated old session for user switch: old_user_id={current_user.id}, new_user_id={new_user.id}")
+                
+                # Create new session for the user (switches user if already logged in)
+                new_session_id = auth_service.create_session(db, new_user)
+                
+                # Redirect to dashboard with session cookie
+                response = RedirectResponse(url="/dashboard", status_code=302)
+                
+                # Set cookie max_age based on session expiration
+                current_expire_minutes = auth_service._get_current_expire_minutes()
+                cookie_max_age = None if current_expire_minutes == 0 else current_expire_minutes * 60
+                
+                response.set_cookie(
+                    key="session_id",
+                    value=new_session_id,
+                    max_age=cookie_max_age,
+                    httponly=True,
+                    secure=False,  # Set to True in production with HTTPS
+                    samesite="lax"
+                )
+                
+                if current_user and current_user.id != new_user.id:
+                    logger.info(f"User switched from {current_user.username} to {new_user.username} via token")
+                else:
+                    logger.info(f"User {new_user.username} logged in via token")
+                return response
+            else:
+                # Token invalid, show error
+                error = "登录链接已过期或无效"
+        except Exception as e:
+            logger.error(f"Token login error: {e}")
+            error = "自动登录失败，请手动登录"
+    
+    # Check if user is already logged in (no token provided)
+    # Get current user directly from session cookie
+    existing_session_id = request.cookies.get("session_id")
+    if existing_session_id:
+        current_user = auth_service.get_user_by_session(db, existing_session_id)
+        if current_user:
+            return RedirectResponse(url="/dashboard", status_code=302)
 
     active_tab = "login"
     if tab in {"login", "register"}:
@@ -271,7 +336,8 @@ async def logout(
     if session_id:
         auth_service.logout_user(db, session_id)
     
-    response = RedirectResponse(url="/auth/login?success=已成功退出登录", status_code=302)
+    # Redirect to login page with a flag to clear frontend token storage
+    response = RedirectResponse(url="/auth/login?logout=1&success=已成功退出登录", status_code=302)
     response.delete_cookie("session_id")
     
     return response
