@@ -623,6 +623,12 @@ class AppConfig(BaseSettings):
     linuxdo_client_secret: Optional[str] = Field(default=None, env="LINUXDO_CLIENT_SECRET")
     linuxdo_callback_url: Optional[str] = Field(default=None, env="LINUXDO_CALLBACK_URL")  # e.g. https://yourdomain.com/auth/linuxdo/callback
     
+    # iframe Support Configuration
+    # Enable iframe embedding support (requires HTTPS in production)
+    enable_iframe_support: bool = Field(default=False, env="LANDPPT_ENABLE_IFRAME_SUPPORT")
+    # Force HTTPS for iframe cookies (disable only for local development)
+    iframe_cookie_secure: bool = Field(default=True, env="LANDPPT_IFRAME_COOKIE_SECURE")
+    
     model_config = {
         "env_file": ".env",
         "case_sensitive": False,

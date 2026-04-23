@@ -195,21 +195,66 @@ async def root(
                 new_session_id = auth_service.create_session(db, new_user)
                 logger.info(f"Created new session: session_id={new_session_id} for user_id={new_user.id}")
                 
-                # Redirect to dashboard with session cookie
-                response = RedirectResponse(url="/dashboard", status_code=302)
+                # Check if request is from an iframe
+                # Method 1: Check Referer header (may be empty in cross-domain iframe)
+                referer = request.headers.get("referer", "")
+                request_url = str(request.url)
+                referer_indicates_iframe = bool(referer) and not request_url.startswith(referer.split('?')[0])
+                
+                # Method 2: Check URL parameter (for explicit iframe mode when Referer is blocked)
+                iframe_param = request.query_params.get("_iframe", "")
+                param_indicates_iframe = iframe_param in ("1", "true", "yes")
+                
+                # Method 3: Check Sec-Fetch-Site header (if available)
+                # Note: Sec-Fetch-Site: none means direct navigation (address bar, bookmark)
+                # Only cross-site indicates iframe embedding from different site
+                fetch_site = request.headers.get("sec-fetch-site", "")
+                fetch_indicates_iframe = fetch_site == "cross-site"
+                
+                is_iframe = referer_indicates_iframe or param_indicates_iframe or fetch_indicates_iframe
+                
+                logger.info(f"iframe detection: referer={referer[:50] if referer else ''}, referer_iframe={referer_indicates_iframe}, "
+                          f"param_iframe={param_indicates_iframe}, fetch_site={fetch_site}, "
+                          f"fetch_iframe={fetch_indicates_iframe}, final={is_iframe}")
                 
                 # Set cookie max_age based on session expiration
                 current_expire_minutes = auth_service._get_current_expire_minutes()
                 cookie_max_age = None if current_expire_minutes == 0 else current_expire_minutes * 60
                 
+                # Determine cookie settings based on iframe support configuration
+                if app_config.enable_iframe_support and is_iframe:
+                    # For iframe support, use SameSite=None with Secure
+                    cookie_samesite = "none"
+                    cookie_secure = app_config.iframe_cookie_secure
+                    logger.info(f"iframe mode: samesite=none, secure={cookie_secure}")
+                else:
+                    # Standard mode
+                    cookie_samesite = "lax"
+                    cookie_secure = False
+                    logger.info(f"standard mode: samesite=lax, secure=False (enable_iframe={app_config.enable_iframe_support}, is_iframe={is_iframe})")
+                
+                # For iframe cross-domain: redirect with session_id in URL
+                # This is a workaround when cookies are blocked by browser
+                if is_iframe and app_config.enable_iframe_support:
+                    # Redirect to dashboard with session_id in URL
+                    redirect_url = f"/dashboard?_session_id={new_session_id}"
+                    response = RedirectResponse(url=redirect_url, status_code=302)
+                    logger.info(f"iframe redirect with session in URL: {redirect_url}")
+                else:
+                    # Standard redirect
+                    response = RedirectResponse(url="/dashboard", status_code=302)
+                
+                # Always try to set cookie (for non-iframe or same-domain iframe)
                 response.set_cookie(
                     key="session_id",
                     value=new_session_id,
                     max_age=cookie_max_age,
                     httponly=True,
-                    secure=False,  # Set to True in production with HTTPS
-                    samesite="lax"
+                    secure=cookie_secure,
+                    samesite=cookie_samesite
                 )
+                
+                logger.info(f"Root cookie set: samesite={cookie_samesite}, secure={cookie_secure}")
                 
                 if current_user and current_user.id != new_user.id:
                     logger.info(f"User switched from {current_user.username} to {new_user.username} via token at root")

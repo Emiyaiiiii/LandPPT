@@ -534,6 +534,7 @@
     </div>
 
     <script src="/static/js/shared/site_notice.js?v=20260322"></script>
+    <script src="/static/js/iframe_session.js?v=20260424"></script>
     <script>
         window.SiteNotice?.loadPublicSettings({
             noticeContainer: 'globalSiteNotice',
@@ -543,12 +544,19 @@
     {% block extra_js %}{% endblock %}
     <script type="module">
         // Import auth utilities
-        import { initAuth } from '/static/js/auth.js';
+        import { initAuth } from '/static/js/auth.js?v=20260424';
         
         // Initialize auth on page load
-        window.addEventListener('DOMContentLoaded', async () => {
-            await initAuth();
-        });
+        if (typeof window !== 'undefined') {
+            console.log('[base.html] Setting up initAuth on DOMContentLoaded');
+            window.addEventListener('DOMContentLoaded', async () => {
+                try {
+                    await initAuth();
+                } catch (error) {
+                    console.error('[base.html] initAuth failed:', error);
+                }
+            });
+        }
     </script>
 </body>
 

@@ -45,14 +45,22 @@ def _extract_api_key(request: Request) -> Optional[str]:
 
 
 def _extract_session_id(request: Request) -> Optional[str]:
-    """Extract session ID from cookie first, then optional X-Session-Id header."""
+    """Extract session ID from cookie first, then URL param, then optional X-Session-Id header."""
+    # 1. Try cookie first (standard method)
     cookie_session = (request.cookies.get("session_id") or "").strip()
     if cookie_session:
         return cookie_session
+    
+    # 2. Try URL query parameter (for iframe cross-domain scenarios)
+    # This allows passing session_id in URL when cookies are blocked
+    url_session = (request.query_params.get("_session_id") or "").strip()
+    if url_session:
+        return url_session
 
     if not app_config.allow_header_session_auth:
         return None
 
+    # 3. Try header (for API/automation use)
     header_session = (request.headers.get("x-session-id") or "").strip()
     return header_session or None
 

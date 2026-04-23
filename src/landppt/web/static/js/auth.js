@@ -83,22 +83,47 @@ function isRootPage() {
 }
 
 /**
- * Check if user is logged in via session cookie
+ * Get session ID from URL parameters (for iframe cross-domain scenarios)
+ */
+function getSessionIdFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('_session_id');
+}
+
+/**
+ * Check if user is logged in via session cookie or URL session parameter
  * This function checks if the user is already authenticated by calling the backend
  */
 async function checkSessionAuth() {
     try {
-        const response = await fetch('/api/auth/check', {
+        // Check if we have session_id in URL (iframe cross-domain scenario)
+        const urlSessionId = getSessionIdFromUrl();
+        console.log('[checkSessionAuth] URL session_id:', urlSessionId);
+        
+        let fetchUrl = '/api/auth/check';
+        let fetchOptions = {
             credentials: 'same-origin' // Include cookies in the request
-        });
+        };
+        
+        // If session_id is in URL, append it to the request
+        if (urlSessionId) {
+            fetchUrl = `/api/auth/check?_session_id=${encodeURIComponent(urlSessionId)}`;
+            console.log('[checkSessionAuth] Using URL session_id for auth check:', urlSessionId);
+        }
+        
+        console.log('[checkSessionAuth] Fetching:', fetchUrl);
+        const response = await fetch(fetchUrl, fetchOptions);
+        console.log('[checkSessionAuth] Response status:', response.status);
         
         if (response.ok) {
             const data = await response.json();
+            console.log('[checkSessionAuth] Response data:', data);
             return data.authenticated === true;
         }
+        console.log('[checkSessionAuth] Response not ok');
         return false;
     } catch (error) {
-        console.error('Session auth check failed:', error);
+        console.error('[checkSessionAuth] Error:', error);
         return false;
     }
 }
@@ -106,11 +131,19 @@ async function checkSessionAuth() {
 /**
  * Check authentication status and redirect if needed
  * This function checks both token auth and session cookie auth
+ * Also supports iframe cross-domain scenario with URL session parameter
  */
 export async function checkAuth() {
-    // First, check session cookie auth (for regular login)
+    // First, check session cookie auth or URL session_id (for regular login and iframe)
     try {
-        const sessionResponse = await fetch('/api/auth/check', {
+        const urlSessionId = getSessionIdFromUrl();
+        let sessionFetchUrl = '/api/auth/check';
+        
+        if (urlSessionId) {
+            sessionFetchUrl = `/api/auth/check?_session_id=${encodeURIComponent(urlSessionId)}`;
+        }
+        
+        const sessionResponse = await fetch(sessionFetchUrl, {
             credentials: 'same-origin'
         });
         
@@ -157,6 +190,8 @@ export async function checkAuth() {
  * This function is called on all pages to check authentication status
  */
 export async function initAuth() {
+    console.log('[initAuth] Starting auth check, pathname:', window.location.pathname, 'search:', window.location.search);
+    
     // Skip auth check on public pages to avoid infinite redirects
     if (isPublicPage()) {
         console.log('Skipping auth check on public page:', window.location.pathname);
@@ -169,10 +204,15 @@ export async function initAuth() {
         return;
     }
 
-    // First, check if user is already logged in via session cookie
+    // First, check if user is already logged in via session cookie or URL session
+    const urlSessionId = getSessionIdFromUrl();
+    console.log('[initAuth] URL session_id:', urlSessionId);
+    
     const isSessionAuthenticated = await checkSessionAuth();
+    console.log('[initAuth] Session auth result:', isSessionAuthenticated);
+    
     if (isSessionAuthenticated) {
-        console.log('User is already authenticated via session cookie');
+        console.log('User is already authenticated via session');
         return;
     }
 
