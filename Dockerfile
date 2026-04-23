@@ -50,8 +50,9 @@ COPY pyproject.toml uv.lock* uv.toml README.md ./
 COPY src/ ./src/
 
 # Install Python dependencies using uv
-# uv sync will create venv at UV_PROJECT_ENVIRONMENT and install all dependencies
-RUN uv sync --active --no-dev --frozen --extra-index-url=https://pypi.apryse.com && \
+# Set UV_PROJECT_ENVIRONMENT to ensure uv installs to the correct venv
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+RUN uv sync --no-dev --frozen --extra-index-url=https://pypi.apryse.com && \
     # Clean up build artifacts
     find /opt/venv -name "*.pyc" -delete && \
     find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
