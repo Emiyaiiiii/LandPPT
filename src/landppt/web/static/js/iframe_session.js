@@ -8,7 +8,6 @@
 (function() {
     'use strict';
 
-    // Check if we're in an iframe
     function isInIframe() {
         try {
             return window.self !== window.top;
@@ -17,7 +16,6 @@
         }
     }
 
-    // Get URL parameters
     function getUrlParams() {
         const params = new URLSearchParams(window.location.search);
         return {
@@ -26,103 +24,174 @@
         };
     }
 
-    // Store session info
     function storeSession(sessionId) {
-        if (sessionId) {
+        if (!sessionId) return;
+        try {
             sessionStorage.setItem('_iframe_session_id', sessionId);
-            console.log('[iframeSession] Stored session_id:', sessionId);
+        } catch (e) {
+            window._iframe_session_id_fallback = sessionId;
         }
     }
 
-    // Get stored session
     function getStoredSession() {
-        return sessionStorage.getItem('_iframe_session_id');
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlSessionId = urlParams.get('_session_id');
+        if (urlSessionId) {
+            try {
+                sessionStorage.setItem('_iframe_session_id', urlSessionId);
+            } catch (e) {
+                // Ignore storage errors
+            }
+            return urlSessionId;
+        }
+
+        try {
+            const fromStorage = sessionStorage.getItem('_iframe_session_id');
+            if (fromStorage) {
+                return fromStorage;
+            }
+        } catch (e) {
+            // Ignore storage errors
+        }
+        if (window._iframe_session_id_fallback) {
+            return window._iframe_session_id_fallback;
+        }
+        return null;
     }
 
-    // Append session_id to URL if in iframe
     function appendSessionToUrl(url) {
-        if (!isInIframe()) return url;
-        
-        const sessionId = getStoredSession();
-        if (!sessionId) return url;
+        if (!isInIframe()) {
+            return url;
+        }
 
-        // Don't append if already has _session_id
-        if (url.includes('_session_id=')) return url;
+        if (url.includes('_session_id=')) {
+            return url;
+        }
+
+        const sessionId = getStoredSession();
+        if (!sessionId) {
+            return url;
+        }
 
         const separator = url.includes('?') ? '&' : '?';
         return `${url}${separator}_session_id=${encodeURIComponent(sessionId)}`;
     }
 
-    // Intercept all link clicks
     function interceptLinks() {
-        if (!isInIframe()) return;
+        if (!isInIframe()) {
+            return;
+        }
 
         document.addEventListener('click', function(e) {
             const link = e.target.closest('a');
             if (!link) return;
 
             const href = link.getAttribute('href');
-            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-            
-            // Only handle same-origin links
-            if (href.startsWith('http') && !href.startsWith(window.location.origin)) return;
 
-            // Append session_id and update href
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) {
+                return;
+            }
+
+            if (href.startsWith('http') && !href.startsWith(window.location.origin)) {
+                return;
+            }
+
             const newHref = appendSessionToUrl(href);
             if (newHref !== href) {
                 link.setAttribute('href', newHref);
-                console.log('[iframeSession] Modified link:', href, '->', newHref);
             }
         }, true);
     }
 
-    // Intercept form submissions
     function interceptForms() {
-        if (!isInIframe()) return;
+        if (!isInIframe()) {
+            return;
+        }
 
         document.addEventListener('submit', function(e) {
             const form = e.target;
-            const sessionId = getStoredSession();
-            
-            if (!sessionId) return;
+            const params = getUrlParams();
+            const sessionId = params.sessionId;
 
-            // Check if form already has _session_id input
-            let sessionInput = form.querySelector('input[name="_session_id"]');
-            if (!sessionInput) {
-                sessionInput = document.createElement('input');
-                sessionInput.type = 'hidden';
-                sessionInput.name = '_session_id';
-                form.appendChild(sessionInput);
+            if (!sessionId) {
+                return;
             }
-            sessionInput.value = sessionId;
-            console.log('[iframeSession] Added session_id to form');
+
+            addSessionToForm(form, sessionId);
         }, true);
     }
 
-    // Main initialization
-    function init() {
-        console.log('[iframeSession] Initializing, inIframe:', isInIframe());
-
-        // Store session from URL if present
-        const params = getUrlParams();
-        if (params.sessionId) {
-            storeSession(params.sessionId);
-            
-            // Note: We don't clean URL here because:
-            // 1. auth.js also needs to read _session_id from URL
-            // 2. Page refresh would lose the session if we clean it
-            // The URL parameter is harmless and helps with debugging
+    function addSessionToForm(form, sessionId) {
+        let actionUrl = form.action;
+        if (actionUrl && !actionUrl.includes('_session_id=')) {
+            const separator = actionUrl.includes('?') ? '&' : '?';
+            form.action = `${actionUrl}${separator}_session_id=${encodeURIComponent(sessionId)}`;
         }
 
-        // Set up interceptors if in iframe
-        if (isInIframe()) {
+        let sessionInput = form.querySelector('input[name="_session_id"]');
+        if (!sessionInput) {
+            sessionInput = document.createElement('input');
+            sessionInput.type = 'hidden';
+            sessionInput.name = '_session_id';
+            form.appendChild(sessionInput);
+        }
+        sessionInput.value = sessionId;
+    }
+
+    function interceptFetch() {
+        if (!isInIframe()) {
+            return;
+        }
+
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            if (typeof url === 'string' && url.startsWith('/')) {
+                const params = getUrlParams();
+                const sessionId = params.sessionId;
+                if (sessionId && !url.includes('_session_id=')) {
+                    const separator = url.includes('?') ? '&' : '?';
+                    url = `${url}${separator}_session_id=${encodeURIComponent(sessionId)}`;
+                }
+            }
+            return originalFetch.apply(this, [url, options]);
+        };
+    }
+
+    function interceptXHR() {
+        if (!isInIframe()) {
+            return;
+        }
+
+        const originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+            if (typeof url === 'string' && url.startsWith('/')) {
+                const params = getUrlParams();
+                const sessionId = params.sessionId;
+                if (sessionId && !url.includes('_session_id=')) {
+                    const separator = url.includes('?') ? '&' : '?';
+                    url = `${url}${separator}_session_id=${encodeURIComponent(sessionId)}`;
+                }
+            }
+            return originalOpen.apply(this, [method, url, async, user, password]);
+        };
+    }
+
+    function init() {
+        const inIframe = isInIframe();
+        const params = getUrlParams();
+
+        if (params.sessionId) {
+            storeSession(params.sessionId);
+        }
+
+        if (inIframe) {
             interceptLinks();
             interceptForms();
-            console.log('[iframeSession] Interceptors enabled');
+            interceptFetch();
+            interceptXHR();
         }
     }
 
-    // Run on DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

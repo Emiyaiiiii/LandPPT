@@ -185,7 +185,11 @@ async def login_page(
                 
                 if current_user and current_user.id == new_user.id and not switch_user:
                     # Same user, just redirect to dashboard
-                    return RedirectResponse(url="/dashboard", status_code=302)
+                    # Preserve _session_id for iframe scenarios
+                    redirect_url = "/dashboard"
+                    if request.query_params.get("_session_id"):
+                        redirect_url = f"/dashboard?_session_id={request.query_params.get('_session_id')}"
+                    return RedirectResponse(url=redirect_url, status_code=302)
                 
                 # If switching user, invalidate the old session first
                 if existing_session_id and current_user and current_user.id != new_user.id:
@@ -261,12 +265,16 @@ async def login_page(
             error = "自动登录失败，请手动登录"
     
     # Check if user is already logged in (no token provided)
-    # Get current user directly from session cookie
-    existing_session_id = request.cookies.get("session_id")
+    # Get current user directly from session cookie or URL param
+    existing_session_id = request.cookies.get("session_id") or request.query_params.get("_session_id")
     if existing_session_id:
         current_user = auth_service.get_user_by_session(db, existing_session_id)
         if current_user:
-            return RedirectResponse(url="/dashboard", status_code=302)
+            # Preserve _session_id for iframe scenarios
+            redirect_url = "/dashboard"
+            if request.query_params.get("_session_id"):
+                redirect_url = f"/dashboard?_session_id={request.query_params.get('_session_id')}"
+            return RedirectResponse(url=redirect_url, status_code=302)
 
     active_tab = "login"
     if tab in {"login", "register"}:
@@ -328,8 +336,26 @@ async def login(
         except Exception:
             pass
         
-        # Redirect to dashboard
-        response = RedirectResponse(url="/dashboard", status_code=302)
+        # Check if request is from an iframe
+        referer = request.headers.get("referer", "")
+        request_url = str(request.url)
+        referer_indicates_iframe = bool(referer) and not request_url.startswith(referer.split('?')[0])
+        iframe_param = request.query_params.get("_iframe", "")
+        param_indicates_iframe = iframe_param in ("1", "true", "yes")
+        fetch_site = request.headers.get("sec-fetch-site", "")
+        fetch_indicates_iframe = fetch_site == "cross-site"
+        is_iframe = referer_indicates_iframe or param_indicates_iframe or fetch_indicates_iframe
+        
+        # Redirect to dashboard (preserve _session_id for iframe)
+        if is_iframe and app_config.enable_iframe_support:
+            redirect_url = f"/dashboard?_session_id={session_id}"
+            response = RedirectResponse(url=redirect_url, status_code=302)
+            cookie_samesite = "none"
+            cookie_secure = app_config.iframe_cookie_secure
+        else:
+            response = RedirectResponse(url="/dashboard", status_code=302)
+            cookie_samesite = "lax"
+            cookie_secure = False
 
         # Set cookie max_age based on session expiration
         # If session_expire_minutes is 0, set cookie to never expire (None means session cookie)
@@ -341,8 +367,8 @@ async def login(
             value=session_id,
             max_age=cookie_max_age,
             httponly=True,
-            secure=False,  # Set to True in production with HTTPS
-            samesite="lax"
+            secure=cookie_secure,
+            samesite=cookie_samesite
         )
         
         logger.info(f"User {username} logged in successfully")

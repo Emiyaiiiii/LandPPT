@@ -61,7 +61,7 @@
                         data-slide-index="{{ loop.index0 }}" draggable="true">
                         <div class="drag-indicator top"></div>
                         <div class="slide-preview">
-                            <iframe srcdoc="{{ slide.html_content | e }}" title="Slide {{ loop.index }}"></iframe>
+                            <iframe srcdoc="{{ slide.html_content | e }}" title="Slide {{ loop.index }}" sandbox="allow-modals"></iframe>
                         </div>
                         <div class="slide-title">{{ loop.index }}. {{ slide.title }}</div>
                         <div class="drag-indicator bottom"></div>
@@ -248,7 +248,7 @@
 
                                 <iframe class="slide-frame" id="slideFrame"
                                     srcdoc="{{ project.slides_data[0].html_content | e }}"
-                                    title="Slide Preview"></iframe>
+                                    title="Slide Preview" sandbox="allow-modals"></iframe>
 
                                 <button class="preview-nav-btn right" id="previewNextBtn"
                                     onclick="navigatePreviewSlide(1)" title="&#19979;&#19968;&#39029; (&#8594;)">
@@ -398,8 +398,8 @@
         <div class="slideshow-container">
             <div class="slideshow-slide">
                 <div class="iframe-container">
-                    <iframe id="slideshowFrame1" class="visible" title="Slideshow Frame 1"></iframe>
-                    <iframe id="slideshowFrame2" class="hidden" title="Slideshow Frame 2"></iframe>
+                    <iframe id="slideshowFrame1" class="visible" title="Slideshow Frame 1" sandbox="allow-modals"></iframe>
+                    <iframe id="slideshowFrame2" class="hidden" title="Slideshow Frame 2" sandbox="allow-modals"></iframe>
                 </div>
             </div>
 

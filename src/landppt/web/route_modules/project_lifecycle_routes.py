@@ -142,7 +142,12 @@ async def web_create_project(
         )
         project = await ppt_service.project_manager.create_project(project_request)
         await ppt_service.project_manager.update_project_status(project.project_id, "in_progress")
-        return RedirectResponse(url=f"/projects/{project.project_id}/todo", status_code=302)
+        # Preserve _session_id for iframe cross-domain scenarios
+        redirect_url = f"/projects/{project.project_id}/todo"
+        session_id = request.query_params.get("_session_id")
+        if session_id:
+            redirect_url = f"/projects/{project.project_id}/todo?_session_id={session_id}"
+        return RedirectResponse(url=redirect_url, status_code=302)
     except Exception as exc:
         return templates.TemplateResponse("error.html", {"request": request, "error": str(exc)})
 

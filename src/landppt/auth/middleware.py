@@ -30,38 +30,48 @@ def _is_api_path(path: str) -> bool:
 def _extract_api_key(request: Request) -> Optional[str]:
     """
     Extract machine API key from request headers.
-    Supported headers:
-    - Authorization: Bearer <key>
-    - X-API-Key: <key>
+    Supported headers (exclusive with JWT token authentication):
+    - X-API-Key: <key> (preferred for API keys)
+    - Authorization: Bearer <key> (supported but JWT token has priority)
     """
+    # First check X-API-Key header (unambiguous for API keys)
+    api_key = (request.headers.get("x-api-key") or "").strip()
+    if api_key:
+        return api_key
+
+    # If no X-API-Key, check Authorization: Bearer
+    # Note: This could also be an external JWT token, caller should handle distinction
     auth_header = (request.headers.get("authorization") or "").strip()
     if auth_header.lower().startswith("bearer "):
         token = auth_header[7:].strip()
         if token:
             return token
 
-    api_key = (request.headers.get("x-api-key") or "").strip()
-    return api_key or None
+    return None
 
 
 def _extract_session_id(request: Request) -> Optional[str]:
     """Extract session ID from cookie first, then URL param, then optional X-Session-Id header."""
     # 1. Try cookie first (standard method)
     cookie_session = (request.cookies.get("session_id") or "").strip()
+    logger.debug(f"[_extract_session_id] Cookie session_id: '{cookie_session[:20]}...'" if cookie_session and len(cookie_session) > 20 else f"[_extract_session_id] Cookie session_id: '{cookie_session}'")
     if cookie_session:
         return cookie_session
     
     # 2. Try URL query parameter (for iframe cross-domain scenarios)
     # This allows passing session_id in URL when cookies are blocked
     url_session = (request.query_params.get("_session_id") or "").strip()
+    logger.debug(f"[_extract_session_id] URL param _session_id: '{url_session[:20]}...'" if url_session and len(url_session) > 20 else f"[_extract_session_id] URL param _session_id: '{url_session}'")
     if url_session:
         return url_session
 
     if not app_config.allow_header_session_auth:
+        logger.debug("[_extract_session_id] Header session auth disabled, skipping header check")
         return None
 
     # 3. Try header (for API/automation use)
     header_session = (request.headers.get("x-session-id") or "").strip()
+    logger.debug(f"[_extract_session_id] Header x-session-id: '{header_session[:20]}...'" if header_session and len(header_session) > 20 else f"[_extract_session_id] Header x-session-id: '{header_session}'")
     return header_session or None
 
 
@@ -128,12 +138,31 @@ class AuthMiddleware:
 
     def _resolve_request_user(self, request: Request, db: Session) -> Optional[User]:
         """统一解析当前请求用户，供公开页与受保护页复用。"""
-        api_key = _extract_api_key(request)
+        # Authentication priority:
+        # 1. External JWT Token (Authorization: Bearer <jwt>) - for user login
+        # 2. API Key (X-API-Key header) - for machine auth
+        # 3. Session ID (cookie or URL param) - for logged-in users
+
+        # 1. First check for external JWT token (only from Authorization header)
+        # Note: We only try JWT token from Authorization header, not from X-API-Key
+        auth_header = (request.headers.get("authorization") or "").strip()
+        if auth_header.lower().startswith("bearer "):
+            token = auth_header[7:].strip()
+            if token:
+                # Try as external JWT token first (highest priority for user auth)
+                user = self.auth_service.get_user_by_token(db, token)
+                if user:
+                    return user
+                # If JWT parsing fails, don't retry with API key - token format is different
+
+        # 2. Then check for API key (only from X-API-Key header, not Authorization)
+        api_key = (request.headers.get("x-api-key") or "").strip()
         if api_key:
             user = self.auth_service.get_user_by_api_key(db, api_key)
             if user:
                 return user
 
+        # 3. Finally check session
         session_id = _extract_session_id(request)
         if session_id:
             return self.auth_service.get_user_by_session(db, session_id)
@@ -229,20 +258,11 @@ class AuthMiddleware:
                 user: Optional[User] = None
                 session_id = _extract_session_id(request)
                 
-                # Try to get token from Authorization header
-                auth_header = request.headers.get("Authorization")
-                if auth_header and auth_header.startswith("Bearer "):
-                    token = auth_header.split(" ")[1]
-                    try:
-                        db = ensure_db()
-                        user = self.auth_service.get_user_by_token(db, token)
-                    except Exception as e:
-                        logger.error(f"Token validation error: {e}")
-
-                # If no token or token validation failed, try session-based authentication
-                if not user and session_id:
+                # First try cached session for performance
+                if session_id:
                     user = await self._get_user_from_session_cache(session_id)
 
+                # If cache miss or no session, resolve via unified method
                 if not user:
                     user = self._resolve_request_user(request, ensure_db())
 
@@ -255,7 +275,12 @@ class AuthMiddleware:
                             media_type="application/json"
                         )
                     else:
-                        response = RedirectResponse(url="/auth/login", status_code=302)
+                        # Preserve _session_id for iframe cross-domain scenarios
+                        login_url = "/auth/login"
+                        session_id = request.query_params.get("_session_id")
+                        if session_id:
+                            login_url = f"/auth/login?_session_id={session_id}"
+                        response = RedirectResponse(url=login_url, status_code=302)
                         # If cookie-based session is present but invalid, clear it.
                         if session_cookie:
                             response.delete_cookie("session_id")
@@ -278,7 +303,12 @@ class AuthMiddleware:
                         media_type="application/json"
                     )
                 else:
-                    return RedirectResponse(url="/auth/login", status_code=302)
+                    # Preserve _session_id for iframe cross-domain scenarios
+                    login_url = "/auth/login"
+                    session_id = request.query_params.get("_session_id")
+                    if session_id:
+                        login_url = f"/auth/login?_session_id={session_id}"
+                    return RedirectResponse(url=login_url, status_code=302)
             finally:
                 if db is not None:
                     try:
@@ -319,42 +349,41 @@ def get_current_user_optional(
     Get current user if authenticated, None otherwise.
     For use with FastAPI dependency injection.
     """
-    # Check if user is already set by middleware (from token authentication)
+    # Check if user is already set by middleware
     user = getattr(request.state, 'user', None)
     if user:
         return user
     
-    # Fallback to session cookie authentication
-    # Prefer middleware-resolved user.
-    state_user = get_current_user(request)
-    if state_user:
-        return state_user
-
+    # Fallback to manual authentication using the same priority as middleware
     auth_service = get_auth_service()
+    
+    # 1. First try external JWT token (from Authorization header)
+    auth_header = (request.headers.get("authorization") or "").strip()
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:].strip()
+        if token:
+            user = auth_service.get_user_by_token(db, token)
+            if user:
+                request.state.user = user
+                return user
 
-    # Try token authentication first (for external system tokens)
-    api_key = _extract_api_key(request)
+    # 2. Then try API Key (X-API-Key header only)
+    api_key = (request.headers.get("x-api-key") or "").strip()
     if api_key:
-        # First try to authenticate using token authentication (for external system tokens)
-        user = auth_service.get_user_by_token(db, api_key)
-        if user:
-            request.state.user = user
-            return user
-        # If token authentication fails, try API key authentication
         user = auth_service.get_user_by_api_key(db, api_key)
         if user:
             request.state.user = user
             return user
 
-    # Fallback to session auth.
+    # 3. Finally try session
     session_id = _extract_session_id(request)
-    if not session_id:
-        return None
+    if session_id:
+        user = auth_service.get_user_by_session(db, session_id)
+        if user:
+            request.state.user = user
+            return user
 
-    user = auth_service.get_user_by_session(db, session_id)
-    if user:
-        request.state.user = user
-    return user
+    return None
 
 
 def get_current_user_required(

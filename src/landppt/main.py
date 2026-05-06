@@ -184,7 +184,11 @@ async def root(
                 # If same user and not explicitly switching, just redirect to dashboard
                 if current_user and current_user.id == new_user.id and not switch_user:
                     logger.info(f"Same user login, redirecting to dashboard: user_id={new_user.id}")
-                    return RedirectResponse(url="/dashboard", status_code=302)
+                    # Preserve _session_id for iframe scenarios
+                    redirect_url = "/dashboard"
+                    if request.query_params.get("_session_id"):
+                        redirect_url = f"/dashboard?_session_id={request.query_params.get('_session_id')}"
+                    return RedirectResponse(url=redirect_url, status_code=302)
                 
                 # If switching user, invalidate the old session first
                 if existing_session_id and current_user and current_user.id != new_user.id:
@@ -268,16 +272,24 @@ async def root(
             logger.error(f"Token authentication error: {e}")
             return RedirectResponse(url="/auth/login?error=自动登录失败，请手动登录", status_code=302)
     
-    # Check for existing session cookie
-    session_id = request.cookies.get("session_id")
+    # Check for existing session cookie or URL session_id
+    session_id = request.cookies.get("session_id") or request.query_params.get("_session_id")
     if session_id:
         user = auth_service.get_user_by_session(db, session_id)
         if user:
             # User is authenticated via session, redirect to dashboard
-            return RedirectResponse(url="/dashboard", status_code=302)
+            # Preserve _session_id for iframe scenarios
+            redirect_url = "/dashboard"
+            if request.query_params.get("_session_id"):
+                redirect_url = f"/dashboard?_session_id={request.query_params.get('_session_id')}"
+            return RedirectResponse(url=redirect_url, status_code=302)
     
     # Not authenticated, redirect to login page
-    return RedirectResponse(url="/auth/login", status_code=302)
+    # Preserve _session_id if present (for iframe scenarios where session might be invalid)
+    login_url = "/auth/login"
+    if request.query_params.get("_session_id"):
+        login_url = f"/auth/login?_session_id={request.query_params.get('_session_id')}"
+    return RedirectResponse(url=login_url, status_code=302)
 
 @app.get("/favicon.ico")
 async def favicon():

@@ -2,6 +2,20 @@
         const projectOutline = {{ project.outline | tojson if project.outline else 'null' }};
         const projectSlides = {{ project.outline.get('slides', []) | tojson if project.outline else '[]' }};
 
+        function getSessionIdParam() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('_session_id');
+        }
+
+        function redirectWithSessionId(url) {
+            const sessionId = getSessionIdParam();
+            if (sessionId) {
+                const separator = url.includes('?') ? '&' : '?';
+                return url + separator + '_session_id=' + encodeURIComponent(sessionId);
+            }
+            return url;
+        }
+
         async function archiveProject() {
             if (confirm('确定要归档这个项目吗？归档后项目将不会显示在活跃项目列表中。')) {
                 try {
@@ -14,7 +28,7 @@
 
                     if (response.ok) {
                         alert('项目已归档');
-                        window.location.href = '/projects';
+                        window.location.href = redirectWithSessionId('/projects');
                     } else {
                         alert('归档失败，请重试');
                     }
@@ -35,7 +49,7 @@
                         deleteBtn.innerHTML = '删除中...';
                         deleteBtn.disabled = true;
 
-                        const response = await fetch(`/api/database/projects/${projectId}`, {
+                        const response = await fetch(redirectWithSessionId(`/api/database/projects/${projectId}`), {
                             method: 'DELETE',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -46,7 +60,7 @@
 
                         if (response.ok) {
                             alert('项目删除成功！');
-                            window.location.href = '/projects';
+                            window.location.href = redirectWithSessionId('/projects');
                         } else {
                             throw new Error(result.detail || '删除失败');
                         }

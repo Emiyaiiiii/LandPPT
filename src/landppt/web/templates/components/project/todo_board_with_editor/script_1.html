@@ -1654,7 +1654,7 @@
                 <div class="slide-preview loading">
                     <iframe title="Slide ${slideData.page_number}"
                             srcdoc="${slideData.html_content.replace(/"/g, '&quot;')}"
-                            onload="adjustIframeHeight(this)"></iframe>
+                            onload="adjustIframeHeight(this)" sandbox="allow-modals"></iframe>
                 </div>
             `;
 

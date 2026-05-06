@@ -699,7 +699,7 @@
                 thumbnailDiv.setAttribute('data-slide-index', index);
 
                 thumbnailDiv.innerHTML = `
-                    <iframe srcdoc="${slide.html_content.replace(/"/g, '&quot;')}" title="Slide ${index + 1}"></iframe>
+                    <iframe srcdoc="${slide.html_content.replace(/"/g, '&quot;')}" title="Slide ${index + 1}" sandbox="allow-modals"></iframe>
                     <div class="thumbnail-number">${index + 1}</div>
                 `;
 
@@ -767,6 +767,7 @@
             iframe.id = frameId;
             iframe.className = 'slide-frame hidden not-loaded';
             iframe.title = `PPT Slide ${index + 1}`;
+            iframe.setAttribute('sandbox', 'allow-modals');
 
             // 设置内容
             if (slidesData[index] && slidesData[index].html_content) {
@@ -870,6 +871,7 @@
             iframe.id = frameId;
             iframe.className = 'slide-frame hidden not-loaded';
             iframe.title = `PPT Slide ${index + 1}`;
+            iframe.setAttribute('sandbox', 'allow-modals');
 
             if (slidesData[index] && slidesData[index].html_content) {
                 iframe.srcdoc = slidesData[index].html_content;

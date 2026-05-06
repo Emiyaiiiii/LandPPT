@@ -616,6 +616,30 @@
 <script>
 let currentDeleteProjectId = null;
 
+function getSessionIdParam() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('_session_id');
+}
+
+function reloadWithSessionId() {
+    const sessionId = getSessionIdParam();
+    if (sessionId && !window.location.search.includes('_session_id=')) {
+        const separator = window.location.search.includes('?') ? '&' : '?';
+        window.location.href = window.location.pathname + window.location.search + separator + '_session_id=' + encodeURIComponent(sessionId);
+    } else {
+        window.location.reload();
+    }
+}
+
+function redirectWithSessionId(url) {
+    const sessionId = getSessionIdParam();
+    if (sessionId) {
+        const separator = url.includes('?') ? '&' : '?';
+        return url + separator + '_session_id=' + encodeURIComponent(sessionId);
+    }
+    return url;
+}
+
 function filterProjects() {
     const selectElement = document.getElementById('statusFilter');
     const status = selectElement.value;
@@ -739,7 +763,7 @@ async function executeDeleteProject() {
     }
 
     try {
-        const response = await fetch(`/api/database/projects/${currentDeleteProjectId}`, {
+        const response = await fetch(redirectWithSessionId(`/api/database/projects/${currentDeleteProjectId}`), {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'
@@ -754,7 +778,7 @@ async function executeDeleteProject() {
 
             // Refresh the page after a short delay
             setTimeout(() => {
-                window.location.reload();
+                reloadWithSessionId();
             }, 1500);
         } else {
             throw new Error(result.detail || '删除失败');

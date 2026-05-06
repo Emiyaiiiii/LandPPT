@@ -282,4 +282,4 @@ async def test_static_export_uses_fixed_stage_wrapper_without_content_crop(tmp_p
     assert len(fake_converter.calls) == 2
     assert all(call["kwargs"]["crop_to_content"] is False for call in fake_converter.calls)
     assert all("window.__lpSlideReady = false;" in call["html"] for call in fake_converter.calls)
-    assert all("<iframe id=\"frame\" title=\"slide\"></iframe>" in call["html"] for call in fake_converter.calls)
+    assert all("<iframe id=\"frame\" title=\"slide\" sandbox=\"allow-modals\"></iframe>" in call["html"] for call in fake_converter.calls)

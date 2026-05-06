@@ -174,6 +174,7 @@
                             if (!sourceDoc || !sourceDoc.body) {
                                 tempIframe = document.createElement('iframe');
                                 tempIframe.style.cssText = renderIframe.style.cssText;
+                                tempIframe.setAttribute('sandbox', 'allow-modals');
                                 renderHost.appendChild(tempIframe);
                                 await loadSlideIntoTempIframe(tempIframe, slide.html_content);
                                 throwIfClientExportCancelled(exportSignal);

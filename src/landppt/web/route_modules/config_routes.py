@@ -89,8 +89,13 @@ async def web_home(
         projects_response = await ppt_service.project_manager.list_projects(page=1, page_size=1, user_id=user.id)
         if projects_response.total > 0:
             # User has projects, redirect to dashboard
+            # Preserve _session_id parameter for iframe cross-domain scenarios
             from fastapi.responses import RedirectResponse
-            return RedirectResponse(url="/dashboard", status_code=302)
+            redirect_url = "/dashboard"
+            session_id = request.query_params.get("_session_id")
+            if session_id:
+                redirect_url = f"/dashboard?_session_id={session_id}"
+            return RedirectResponse(url=redirect_url, status_code=302)
     except:
         pass  # If error, show index page
 

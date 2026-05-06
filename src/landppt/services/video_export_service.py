@@ -917,7 +917,7 @@ class NarrationVideoExportService:
 </head>
 <body>
   <div id="stage">
-    <iframe id="frame" title="slide"></iframe>
+    <iframe id="frame" title="slide" sandbox="allow-modals"></iframe>
   </div>
   <script>
     const BASE_W = 1280;
@@ -1241,7 +1241,7 @@ class NarrationVideoExportService:
 </head>
 <body>
   <div id="stage">
-    <iframe id="frame" title="slide"></iframe>
+    <iframe id="frame" title="slide" sandbox="allow-modals"></iframe>
   </div>
   <script>
     const BASE_W = 1280;

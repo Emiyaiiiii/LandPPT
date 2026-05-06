@@ -388,6 +388,7 @@ function showHTMLPreview(htmlContent) {
         border: none;
         background: white;
     `;
+    iframe.setAttribute('sandbox', 'allow-modals');
     iframe.srcdoc = htmlContent;
 
     closeBtn.addEventListener('click', () => {

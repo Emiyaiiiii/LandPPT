@@ -246,6 +246,7 @@ function buildTemplateCard(template) {
                 title="${template.template_name}"
                 data-template-id="${template.id}"
                 loading="lazy"
+                sandbox="allow-modals"
             ></iframe>
             <div class="preview-overlay" data-action="preview" data-template-id="${template.id}" title="点击查看完整预览">
                 <div class="preview-overlay-text"><i class="fas fa-search-plus"></i> 点击放大预览</div>
@@ -815,6 +816,7 @@ async function exportTemplateAsPptxTemplate(templateId, triggerButton = null) {
                     iframe = document.createElement('iframe');
                     iframe.style.cssText = 'width:1280px;height:720px;border:none;background:#fff;';
                     iframe.setAttribute('aria-hidden', 'true');
+                    iframe.setAttribute('sandbox', 'allow-modals');
                     renderHost.appendChild(iframe);
 
                     const renderedHtml = renderTemplateSampleHtml(

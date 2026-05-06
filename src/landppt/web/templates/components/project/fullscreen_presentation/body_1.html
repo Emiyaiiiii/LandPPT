@@ -63,7 +63,7 @@
             {% for slide in project.slides_data %}
             <div class="thumbnail {% if loop.index == 1 %}active{% endif %}" onclick="goToSlide({{ loop.index0 }})"
                 data-slide-index="{{ loop.index0 }}">
-                <iframe srcdoc="{{ slide.html_content | e }}" title="Slide {{ loop.index }}"></iframe>
+                <iframe srcdoc="{{ slide.html_content | e }}" title="Slide {{ loop.index }}" sandbox="allow-modals"></iframe>
                 <div class="thumbnail-number">{{ loop.index }}</div>
             </div>
             {% endfor %}

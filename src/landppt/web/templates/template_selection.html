@@ -221,7 +221,7 @@
         </div>
         <div class="modal-body" style="text-align: center;">
             <iframe id="previewFrame"
-                style="width: 1280px; height: 720px; border: 1px solid #ddd; transform: scale(0.8); transform-origin: top left; margin: 0 auto;"></iframe>
+                style="width: 1280px; height: 720px; border: 1px solid #ddd; transform: scale(0.8); transform-origin: top left; margin: 0 auto;" sandbox="allow-modals"></iframe>
         </div>
     </div>
 </div>
@@ -830,6 +830,17 @@
     let currentTag = '';
     let allTags = [];
 
+    // Helper function to redirect with session_id for iframe support
+    function redirectWithSessionId(url) {
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('_session_id');
+        if (sessionId) {
+            const separator = url.includes('?') ? '&' : '?';
+            return url + separator + '_session_id=' + encodeURIComponent(sessionId);
+        }
+        return url;
+    }
+
     // Extract project ID from URL path: /projects/{project_id}/template-selection
     let pathParts = window.location.pathname.split('/');
     let projectId = pathParts[2]; // Should be the project ID (pathParts: ['', 'projects', 'project_id', 'template-selection'])
@@ -853,7 +864,7 @@
         // Additional validation for common invalid project IDs
         if (['template-selection', 'todo', 'edit', 'preview', 'fullscreen'].includes(projectId)) {
             alert('错误：项目ID格式无效 (' + projectId + ')。\n\n请从项目列表页面正确访问模板选择页面。');
-            window.location.href = '/projects';
+            window.location.href = redirectWithSessionId('/projects');
             return;
         }
 
@@ -1027,6 +1038,7 @@
                     class="template-preview-iframe"
                     id="iframe-${template.id}"
                     onload="adjustIframeContent(${template.id})"
+                    sandbox="allow-modals"
                 ></iframe>
                 <div class="preview-overlay" onclick="event.stopPropagation(); previewTemplate(${template.id})">
                     <div class="preview-overlay-text">🔍 点击放大预览</div>

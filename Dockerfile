@@ -52,10 +52,13 @@ COPY src/ ./src/
 # Install Python dependencies using uv
 # Set UV_PROJECT_ENVIRONMENT to ensure uv installs to the correct venv
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-RUN uv sync --no-dev --frozen --extra-index-url=https://pypi.apryse.com && \
-    # Clean up build artifacts
+RUN UV_PYTHON=/opt/venv/bin/python uv sync --no-dev --frozen --extra-index-url=https://pypi.apryse.com && \
     find /opt/venv -name "*.pyc" -delete && \
     find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# Explicitly ensure playwright is installed (workaround for uv sync frozen issues)
+RUN /opt/venv/bin/pip install --no-cache-dir playwright>=1.40.0 || \
+    uv pip install --no-cache-dir playwright>=1.40.0 --extra-index-url=https://pypi.apryse.com
 
 # Sanity check: fail the build early if core runtime deps are missing.
 RUN /opt/venv/bin/python -c "import fastapi, uvicorn, edge_tts; print('Core deps installed')"

@@ -107,7 +107,7 @@ function updateMainPreviewArea() {
                     </button>
 
                     <iframe class="slide-frame" id="slideFrame"
-                            title="Slide Preview"></iframe>
+                            title="Slide Preview" sandbox="allow-modals"></iframe>
 
                     <button class="preview-nav-btn right" id="previewNextBtn" onclick="navigatePreviewSlide(1)" title="&#19979;&#19968;&#39029; (&#8594;)">
                         <i class="fas fa-chevron-right"></i>

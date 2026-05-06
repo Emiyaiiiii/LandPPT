@@ -36,7 +36,7 @@ export function getToken() {
         }
         return urlToken;
     }
-    
+
     // If no token in URL, try to get from sessionStorage
     const token = sessionStorage.getItem('token');
     // Remove surrounding quotes if present
@@ -92,35 +92,26 @@ function getSessionIdFromUrl() {
 
 /**
  * Check if user is logged in via session cookie or URL session parameter
- * This function checks if the user is already authenticated by calling the backend
  */
 async function checkSessionAuth() {
     try {
-        // Check if we have session_id in URL (iframe cross-domain scenario)
         const urlSessionId = getSessionIdFromUrl();
-        console.log('[checkSessionAuth] URL session_id:', urlSessionId);
-        
+
         let fetchUrl = '/api/auth/check';
         let fetchOptions = {
-            credentials: 'same-origin' // Include cookies in the request
+            credentials: 'same-origin'
         };
-        
-        // If session_id is in URL, append it to the request
+
         if (urlSessionId) {
             fetchUrl = `/api/auth/check?_session_id=${encodeURIComponent(urlSessionId)}`;
-            console.log('[checkSessionAuth] Using URL session_id for auth check:', urlSessionId);
         }
-        
-        console.log('[checkSessionAuth] Fetching:', fetchUrl);
+
         const response = await fetch(fetchUrl, fetchOptions);
-        console.log('[checkSessionAuth] Response status:', response.status);
-        
+
         if (response.ok) {
             const data = await response.json();
-            console.log('[checkSessionAuth] Response data:', data);
             return data.authenticated === true;
         }
-        console.log('[checkSessionAuth] Response not ok');
         return false;
     } catch (error) {
         console.error('[checkSessionAuth] Error:', error);
@@ -129,126 +120,48 @@ async function checkSessionAuth() {
 }
 
 /**
- * Check authentication status and redirect if needed
- * This function checks both token auth and session cookie auth
- * Also supports iframe cross-domain scenario with URL session parameter
- */
-export async function checkAuth() {
-    // First, check session cookie auth or URL session_id (for regular login and iframe)
-    try {
-        const urlSessionId = getSessionIdFromUrl();
-        let sessionFetchUrl = '/api/auth/check';
-        
-        if (urlSessionId) {
-            sessionFetchUrl = `/api/auth/check?_session_id=${encodeURIComponent(urlSessionId)}`;
-        }
-        
-        const sessionResponse = await fetch(sessionFetchUrl, {
-            credentials: 'same-origin'
-        });
-        
-        if (sessionResponse.ok) {
-            const sessionData = await sessionResponse.json();
-            if (sessionData.authenticated === true) {
-                return true;
-            }
-        }
-    } catch (error) {
-        console.error('Session auth check failed:', error);
-    }
-
-    // Then, check token auth (for external token login)
-    const token = getToken();
-    if (token) {
-        try {
-            // Validate token with backend
-            const response = await fetch('/api/auth/me', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            if (response.ok) {
-                // Token is valid, user is authenticated
-                return true;
-            } else {
-                // Token is invalid, remove it
-                removeToken();
-                return false;
-            }
-        } catch (error) {
-            console.error('Auth check failed:', error);
-            removeToken();
-            return false;
-        }
-    }
-    return false;
-}
-
-/**
  * Initialize auth on page load
  * This function is called on all pages to check authentication status
+ *
+ * For browser token login: backend (main.py root()) handles token -> session conversion
+ * For iframe token login: backend handles it and passes _session_id via URL
  */
 export async function initAuth() {
-    console.log('[initAuth] Starting auth check, pathname:', window.location.pathname, 'search:', window.location.search);
-    
     // Skip auth check on public pages to avoid infinite redirects
     if (isPublicPage()) {
-        console.log('Skipping auth check on public page:', window.location.pathname);
         return;
     }
 
     // Skip auth check on root page - backend handles the redirect
     if (isRootPage()) {
-        console.log('Skipping auth check on root page - handled by backend');
         return;
     }
 
-    // First, check if user is already logged in via session cookie or URL session
+    // Get _session_id from URL first (for iframe cross-domain scenarios)
     const urlSessionId = getSessionIdFromUrl();
-    console.log('[initAuth] URL session_id:', urlSessionId);
-    
+
+    // Check if user is already logged in via session cookie or URL session
     const isSessionAuthenticated = await checkSessionAuth();
-    console.log('[initAuth] Session auth result:', isSessionAuthenticated);
-    
+
     if (isSessionAuthenticated) {
-        console.log('User is already authenticated via session');
+        // If we have _session_id in URL, store it for iframe use
+        if (urlSessionId && typeof window.sessionStorage !== 'undefined') {
+            try {
+                sessionStorage.setItem('_iframe_session_id', urlSessionId);
+            } catch (e) {
+                // Ignore storage errors
+            }
+        }
         return;
     }
 
-    // If not authenticated via session, check for external token
-    const token = getToken();
-    
-    if (token) {
-        try {
-            // Validate token with backend
-            const response = await fetch('/api/auth/me', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            if (!response.ok) {
-                // Token is invalid, remove it
-                removeToken();
-                // Redirect to login page
-                window.location.href = '/auth/login';
-            } else {
-                // Token is valid, user is authenticated
-                // The backend middleware should have created a session
-                // Refresh the page to get the session cookie
-                console.log('Token valid, refreshing to get session cookie');
-                window.location.reload();
-            }
-        } catch (error) {
-            console.error('Auth initialization failed:', error);
-            removeToken();
-            window.location.href = '/auth/login';
-        }
-    } else {
-        // No token and no session, redirect to login page
-        window.location.href = '/auth/login';
+    // Not authenticated via session, redirect to login page
+    // Preserve _session_id if present (for iframe scenarios)
+    let loginUrl = '/auth/login';
+    if (urlSessionId) {
+        loginUrl = `/auth/login?_session_id=${encodeURIComponent(urlSessionId)}`;
     }
+    window.location.href = loginUrl;
 }
 
 // Initialize auth when the script is loaded

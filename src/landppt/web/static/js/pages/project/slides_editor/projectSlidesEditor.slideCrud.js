@@ -434,7 +434,7 @@ function refreshSidebar() {
             <div class="drag-indicator top"></div>
             <div class="slide-preview">
                 <iframe title="Slide ${index + 1}"
-                        loading="lazy"></iframe>
+                        loading="lazy" sandbox="allow-modals"></iframe>
             </div>
             <div class="slide-title">${index + 1}. ${slide.title}</div>
             <div class="drag-indicator bottom"></div>

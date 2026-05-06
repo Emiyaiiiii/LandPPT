@@ -1,4 +1,4 @@
-﻿import { apiClient } from '../modules/apiClient.js';
+import { apiClient } from '../modules/apiClient.js';
 import { debounce, formatBytes } from '../modules/domUtils.js';
 import { emit } from '../modules/eventBus.js';
 
@@ -207,6 +207,7 @@ function buildTemplateCard(template) {
                 title="${template.template_name}"
                 data-template-id="${template.id}"
                 loading="lazy"
+                sandbox="allow-modals"
             ></iframe>
             <div class="preview-overlay" data-action="preview" data-template-id="${template.id}" title="点击查看完整预览">
                 <div class="preview-overlay-text"><i class="fas fa-search-plus"></i> 点击放大预览</div>

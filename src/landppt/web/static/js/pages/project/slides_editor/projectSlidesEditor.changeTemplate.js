@@ -733,6 +733,7 @@ function _tplRenderTemplatePreview(container, template, options = {}) {
     iframe.className = mode === 'card' ? 'tpl-card-preview-frame' : 'tpl-preview-frame';
     iframe.title = `${normalizedTemplate.template_name || '模板'}预览`;
     iframe.loading = 'lazy';
+    iframe.setAttribute('sandbox', 'allow-modals');
 
     const revokePreviewUrl = () => {
         setTimeout(() => {
