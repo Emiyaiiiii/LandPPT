@@ -24,7 +24,6 @@ from .web.admin_routes import router as admin_router
 from .web.community_routes import router as community_router
 from .web.credits_routes import router as credits_router
 from .auth import auth_router, create_auth_middleware, get_auth_service
-from .auth.middleware import _extract_api_key, _extract_session_id
 from .database.startup_initialization import run_startup_initialization
 from .database.database import get_db
 from .core.config import app_config

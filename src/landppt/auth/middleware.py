@@ -27,27 +27,7 @@ def _is_api_path(path: str) -> bool:
     )
 
 
-def _extract_api_key(request: Request) -> Optional[str]:
-    """
-    Extract machine API key from request headers.
-    Supported headers (exclusive with JWT token authentication):
-    - X-API-Key: <key> (preferred for API keys)
-    - Authorization: Bearer <key> (supported but JWT token has priority)
-    """
-    # First check X-API-Key header (unambiguous for API keys)
-    api_key = (request.headers.get("x-api-key") or "").strip()
-    if api_key:
-        return api_key
 
-    # If no X-API-Key, check Authorization: Bearer
-    # Note: This could also be an external JWT token, caller should handle distinction
-    auth_header = (request.headers.get("authorization") or "").strip()
-    if auth_header.lower().startswith("bearer "):
-        token = auth_header[7:].strip()
-        if token:
-            return token
-
-    return None
 
 
 def _extract_session_id(request: Request) -> Optional[str]:
