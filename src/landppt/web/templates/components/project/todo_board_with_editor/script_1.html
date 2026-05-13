@@ -1654,7 +1654,7 @@
                 <div class="slide-preview loading">
                     <iframe title="Slide ${slideData.page_number}"
                             srcdoc="${slideData.html_content.replace(/"/g, '&quot;')}"
-                            onload="adjustIframeHeight(this)" sandbox="allow-modals"></iframe>
+                            onload="adjustIframeHeight(this)" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
                 </div>
             `;
 
@@ -1723,11 +1723,23 @@
         }
 
         function openFullEditor() {
-            window.open('/projects/{{ todo_board.task_id }}/edit', '_blank');
+            let url = '/projects/{{ todo_board.task_id }}/edit';
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('_session_id');
+            if (sessionId) {
+                url += '?_session_id=' + encodeURIComponent(sessionId);
+            }
+            window.open(url, '_blank');
         }
 
         function openSlideshow() {
-            window.open('/projects/{{ todo_board.task_id }}/fullscreen', '_blank');
+            let url = '/projects/{{ todo_board.task_id }}/fullscreen';
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('_session_id');
+            if (sessionId) {
+                url += '?_session_id=' + encodeURIComponent(sessionId);
+            }
+            window.open(url, '_blank');
         }
 
         // 优化的iframe加载完成处理函数

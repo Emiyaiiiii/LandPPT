@@ -563,14 +563,14 @@
                 </div>
 
                 <div class="project-actions">
-                    <a href="/projects/{{ project.project_id }}" class="project-action-btn primary">
+                    <a href="javascript:void(0)" onclick="navigateToUrl('/projects/{{ project.project_id }}')" class="project-action-btn primary">
                         <i class="fas fa-eye"></i> 查看详情
                     </a>
                     {% if project.status == 'completed' %}
-                    <a href="/projects/{{ project.project_id }}/edit" class="project-action-btn secondary">
+                    <a href="javascript:void(0)" onclick="navigateToUrl('/projects/{{ project.project_id }}/edit')" class="project-action-btn secondary">
                         <i class="fas fa-pen"></i> 编辑
                     </a>
-                    <a href="/projects/{{ project.project_id }}/fullscreen" class="project-action-btn secondary" target="_blank">
+                    <a href="javascript:void(0)" onclick="navigateToUrl('/projects/{{ project.project_id }}/fullscreen')" class="project-action-btn secondary">
                         <i class="fas fa-expand"></i> 预览
                     </a>
                     {% endif %}
@@ -658,29 +658,50 @@
 <script>
 let currentDeleteProjectId = null;
 
-function getSessionIdParam() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('_session_id');
-}
+        function getAuthParam() {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            if (token) {
+                return { key: 'token', value: token };
+            }
+            const sessionId = params.get('_session_id');
+            if (sessionId) {
+                return { key: '_session_id', value: sessionId };
+            }
+            return null;
+        }
 
-function reloadWithSessionId() {
-    const sessionId = getSessionIdParam();
-    if (sessionId && !window.location.search.includes('_session_id=')) {
-        const separator = window.location.search.includes('?') ? '&' : '?';
-        window.location.href = window.location.pathname + window.location.search + separator + '_session_id=' + encodeURIComponent(sessionId);
-    } else {
-        window.location.reload();
-    }
-}
+        function appendAuthToUrl(url) {
+            const auth = getAuthParam();
+            if (auth) {
+                const separator = url.includes('?') ? '&' : '?';
+                return url + separator + auth.key + '=' + encodeURIComponent(auth.value);
+            }
+            return url;
+        }
 
-function redirectWithSessionId(url) {
-    const sessionId = getSessionIdParam();
-    if (sessionId) {
-        const separator = url.includes('?') ? '&' : '?';
-        return url + separator + '_session_id=' + encodeURIComponent(sessionId);
-    }
-    return url;
-}
+        function navigateToUrl(url) {
+            window.location.href = appendAuthToUrl(url);
+        }
+
+        function openProjectUrl(url) {
+            window.open(appendAuthToUrl(url), '_blank');
+        }
+
+        function reloadWithAuth() {
+            const auth = getAuthParam();
+            if (auth) {
+                const url = new URL(window.location);
+                url.searchParams.set(auth.key, auth.value);
+                window.location.href = url.toString();
+            } else {
+                window.location.reload();
+            }
+        }
+
+        function redirectWithSessionId(url) {
+            return appendAuthToUrl(url);
+        }
 
 function confirmDeleteProject(projectId, projectTitle) {
     currentDeleteProjectId = projectId;
@@ -710,7 +731,7 @@ async function executeDeleteProject() {
         const result = await response.json();
         if (response.ok) {
             showNotification('项目删除成功！', 'success');
-            setTimeout(() => reloadWithSessionId(), 1500);
+            setTimeout(() => reloadWithAuth(), 1500);
         } else {
             throw new Error(result.detail || '删除失败');
         }

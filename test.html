@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>简单 Iframe 测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 6px;
+        }
+        button {
+            background: #111;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>简单 Iframe 测试</h1>
+        <div class="controls">
+            <input type="text" id="url" placeholder="http://localhost:8000/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4MTI5NDU4LCJpYXQiOjE3NzgwNDMwNTgsImp0aSI6IjJkMmI2NTRjNDY0MjQ4N2Q4YTNjN2JkNzI3NDRlN2JlIiwidXNlcl9pZCI6M30.qUXadZ8AtR6Bbd0ctTogUop--J8qpK815jFI4F0_6w4" style="width: 60%;">
+            <button onclick="load()">加载</button>
+        </div>
+        <iframe id="iframe" sandbox="allow-modals allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+    </div>
+
+    <script>
+        function load() {
+            const input = document.getElementById('url');
+            let url = input.value.trim();
+            
+            // 如果输入为空，使用 placeholder 的默认值
+            if (!url) {
+                url = input.placeholder;
+                input.value = url; // 也填入输入框，让用户看到
+            }
+            
+            document.getElementById('iframe').src = url;
+        }
+    </script>
+</body>
+</html>

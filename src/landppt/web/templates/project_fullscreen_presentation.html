@@ -559,7 +559,7 @@
             <div class="thumbnail {% if loop.index == 1 %}active{% endif %}" 
                  onclick="goToSlide({{ loop.index0 }})" 
                  data-slide-index="{{ loop.index0 }}">
-                <iframe srcdoc="{{ slide.html_content | e }}" title="Slide {{ loop.index }}" sandbox="allow-modals"></iframe>
+                <iframe srcdoc="{{ slide.html_content | e }}" title="Slide {{ loop.index }}" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
                 <div class="thumbnail-number">{{ loop.index }}</div>
             </div>
             {% endfor %}
@@ -681,7 +681,7 @@
                 thumbnailDiv.setAttribute('data-slide-index', index);
 
                 thumbnailDiv.innerHTML = `
-                    <iframe srcdoc="${slide.html_content.replace(/"/g, '&quot;')}" title="Slide ${index + 1}" sandbox="allow-modals"></iframe>
+                    <iframe srcdoc="${slide.html_content.replace(/"/g, '&quot;')}" title="Slide ${index + 1}" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
                     <div class="thumbnail-number">${index + 1}</div>
                 `;
 
@@ -749,7 +749,7 @@
             iframe.id = frameId;
             iframe.className = 'slide-frame hidden not-loaded';
             iframe.title = `PPT Slide ${index + 1}`;
-            iframe.setAttribute('sandbox', 'allow-modals');
+            iframe.setAttribute('sandbox', 'allow-modals allow-scripts allow-same-origin');
 
             // 设置内容
             if (slidesData[index] && slidesData[index].html_content) {

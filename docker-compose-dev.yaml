@@ -6,9 +6,9 @@ services:
       args:
         - APT_DEBIAN_URL=${APT_DEBIAN_URL:-http://deb.debian.org/debian}
         - APT_SECURITY_URL=${APT_SECURITY_URL:-http://deb.debian.org/debian-security}
-    image: landppt-dev:latest
-    container_name: landppt-dev
-    shm_size: '2gb'
+    image: landppt:latest
+    container_name: landppt
+    shm_size: '4gb'
     ports:
       - "8000:8000"
     volumes:

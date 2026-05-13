@@ -3238,7 +3238,16 @@
 
         if (confirm('确认开始生成PPT？这将跳转到模板选择页面。')) {
             // Redirect to template selection page
-            window.location.href = `/projects/${currentProjectId}/template-selection`;
+            let url = `/projects/${currentProjectId}/template-selection`;
+            
+            // 保留 _session_id 参数（用于 iframe 场景）
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('_session_id');
+            if (sessionId) {
+                url += `?_session_id=${encodeURIComponent(sessionId)}`;
+            }
+            
+            window.location.href = url;
         }
     }
 
@@ -3792,7 +3801,12 @@
     // Open editor function
     function openEditor() {
         console.log(`Opening editor for project: ${currentProjectId}`);
-        const editorUrl = `/projects/${currentProjectId}/edit`;
+        let editorUrl = `/projects/${currentProjectId}/edit`;
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('_session_id');
+        if (sessionId) {
+            editorUrl += '?_session_id=' + encodeURIComponent(sessionId);
+        }
         console.log(`Editor URL: ${editorUrl}`);
         window.open(editorUrl, '_blank');
     }

@@ -1013,7 +1013,7 @@
             <button class="close-fullscreen" id="closeFullscreenBtn">
                 <i class="fas fa-times"></i>
             </button>
-            <iframe class="fullscreen-iframe" id="fullscreenIframe" src="" sandbox="allow-modals"></iframe>
+            <iframe class="fullscreen-iframe" id="fullscreenIframe" src="" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
         </div>
     </div>
 
@@ -1051,7 +1051,7 @@
                                     style="background:#f0f0f0; border: 1px solid rgba(17,17,17,0.12); border-radius: 12px; overflow:hidden; position: relative; width: 100%; padding-top: 56.25%; cursor: pointer;"
                                     onclick="openFreeTemplateFullscreen()" title="点击全屏预览">
                                     <iframe id="freeTemplatePreviewIframe"
-                                        style="position: absolute; top: 0; left: 0; width: 1280px; height: 720px; border: 0; transform-origin: top left; pointer-events: none;" sandbox="allow-modals"></iframe>
+                                        style="position: absolute; top: 0; left: 0; width: 1280px; height: 720px; border: 0; transform-origin: top left; pointer-events: none;" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
                                 </div>
                                 <div id="freeTemplateError"
                                     style="display:none; margin-top: 10px; color: #b91c1c; font-weight: 600;"></div>
@@ -1160,7 +1160,7 @@
         style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 10001; display: none; justify-content: center; align-items: center;">
         <div
             style="position: relative; width: 90vw; max-width: 1280px; aspect-ratio: 16/9; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
-            <iframe id="freeTemplateFullscreenIframe" style="width: 100%; height: 100%; border: 0;" sandbox="allow-modals"></iframe>
+            <iframe id="freeTemplateFullscreenIframe" style="width: 100%; height: 100%; border: 0;" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
         </div>
         <button onclick="closeFreeTemplateFullscreen()"
             style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); color: #111; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s ease;">
@@ -1174,6 +1174,7 @@
     </div>
 
 
+    <script src="/static/js/iframe_session.js?v=20260513i"></script>
     <script src="/static/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script>
         let eventSource = null;
@@ -1917,7 +1918,7 @@
 
                         // 未检测到用户选择的全局模板ID，跳转到模板选择页面
                         if (confirm('检测到您还未选择全局模板，需要先选择模板才能开始生成PPT。是否跳转到模板选择页面？')) {
-                            window.location.href = `/projects/{{ todo_board.task_id }}/template-selection`;
+                            navigateToUrl(`/projects/{{ todo_board.task_id }}/template-selection`);
                             return;
                         } else {
                             return; // 用户取消，不继续生成
@@ -2619,7 +2620,7 @@
                 <div class="slide-preview loading">
                     <iframe title="Slide ${slideData.page_number}"
                             srcdoc="${slideData.html_content.replace(/"/g, '&quot;')}"
-                            onload="adjustIframeHeight(this)" sandbox="allow-modals"></iframe>
+                            onload="adjustIframeHeight(this)" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
                 </div>
             `;
 
@@ -2687,12 +2688,42 @@
             if (slideshowBtn) slideshowBtn.style.display = 'inline-block';
         }
 
+        function getAuthParam() {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            if (token) {
+                return { key: 'token', value: token };
+            }
+            const sessionId = params.get('_session_id');
+            if (sessionId) {
+                return { key: '_session_id', value: sessionId };
+            }
+            return null;
+        }
+
+        function appendAuthToUrl(url) {
+            const auth = getAuthParam();
+            if (auth) {
+                const separator = url.includes('?') ? '&' : '?';
+                return url + separator + auth.key + '=' + encodeURIComponent(auth.value);
+            }
+            return url;
+        }
+
+        function navigateToUrl(url) {
+            window.location.href = appendAuthToUrl(url);
+        }
+
+        function openProjectUrl(url) {
+            window.open(appendAuthToUrl(url), '_blank');
+        }
+
         function openFullEditor() {
-            window.open('/projects/{{ todo_board.task_id }}/edit', '_blank');
+            navigateToUrl('/projects/{{ todo_board.task_id }}/edit');
         }
 
         function openSlideshow() {
-            window.open('/projects/{{ todo_board.task_id }}/fullscreen', '_blank');
+            navigateToUrl('/projects/{{ todo_board.task_id }}/fullscreen');
         }
 
         // 优化的iframe加载完成处理函数

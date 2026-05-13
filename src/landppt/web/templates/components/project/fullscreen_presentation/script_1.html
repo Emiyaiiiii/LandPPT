@@ -699,7 +699,7 @@
                 thumbnailDiv.setAttribute('data-slide-index', index);
 
                 thumbnailDiv.innerHTML = `
-                    <iframe srcdoc="${slide.html_content.replace(/"/g, '&quot;')}" title="Slide ${index + 1}" sandbox="allow-modals"></iframe>
+                    <iframe srcdoc="${slide.html_content.replace(/"/g, '&quot;')}" title="Slide ${index + 1}" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
                     <div class="thumbnail-number">${index + 1}</div>
                 `;
 
@@ -767,7 +767,7 @@
             iframe.id = frameId;
             iframe.className = 'slide-frame hidden not-loaded';
             iframe.title = `PPT Slide ${index + 1}`;
-            iframe.setAttribute('sandbox', 'allow-modals');
+            iframe.setAttribute('sandbox', 'allow-modals allow-scripts allow-same-origin');
 
             // 设置内容
             if (slidesData[index] && slidesData[index].html_content) {
@@ -871,7 +871,7 @@
             iframe.id = frameId;
             iframe.className = 'slide-frame hidden not-loaded';
             iframe.title = `PPT Slide ${index + 1}`;
-            iframe.setAttribute('sandbox', 'allow-modals');
+            iframe.setAttribute('sandbox', 'allow-modals allow-scripts allow-same-origin');
 
             if (slidesData[index] && slidesData[index].html_content) {
                 iframe.srcdoc = slidesData[index].html_content;
@@ -1097,6 +1097,8 @@
 
         // 退出演示
         function exitPresentation() {
+            console.log('[ExitPresentation] Exit button clicked');
+            
             // 停止自动播放
             if (isAutoPlaying) {
                 toggleAutoPlay();
@@ -1108,8 +1110,18 @@
                 document.exitFullscreen();
             }
 
-            // 关闭浏览器标签页
-            window.close();
+            // 直接跳转到 dashboard 页面，确保携带 session_id
+            let dashboardUrl = '/dashboard';
+            
+            // 从当前 URL 中获取 session_id 并添加到跳转 URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('_session_id');
+            if (sessionId) {
+                dashboardUrl += '?_session_id=' + encodeURIComponent(sessionId);
+            }
+            
+            console.log('[ExitPresentation] Redirecting to:', dashboardUrl);
+            window.location.href = dashboardUrl;
         }
 
         // 键盘事件处理（防抖）

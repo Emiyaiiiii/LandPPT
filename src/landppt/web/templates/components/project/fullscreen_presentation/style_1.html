@@ -184,7 +184,6 @@
         /* UI auto-hide (avoid overlays blocking slides; keep subtitles visible) */
         body.ui-hidden .presentation-header,
         body.ui-hidden .presentation-controls,
-        body.ui-hidden .exit-btn,
         body.ui-hidden .toggle-thumbnails,
         body.ui-hidden .narration-top-controls,
         body.ui-hidden .slide-thumbnails,
@@ -192,6 +191,12 @@
         body.ui-hidden .cache-status {
             opacity: 0 !important;
             pointer-events: none !important;
+        }
+
+        /* 退出按钮始终保持可见和可点击 */
+        body.ui-hidden .exit-btn {
+            opacity: 1 !important;
+            pointer-events: auto !important;
         }
 
         body.ui-hidden .presentation-header {

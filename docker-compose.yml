@@ -17,7 +17,7 @@ services:
       # Configuration
       - ./.env:/app/.env
       # Development: mount local src for debugging without rebuild
-      # - ./src:/app/src
+      - ./src:/app/src
       # Data persistence
       - landppt_data:/app/data
       - landppt_uploads:/app/uploads

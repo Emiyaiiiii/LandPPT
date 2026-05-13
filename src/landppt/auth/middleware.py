@@ -120,11 +120,11 @@ class AuthMiddleware:
         """统一解析当前请求用户，供公开页与受保护页复用。"""
         # Authentication priority:
         # 1. External JWT Token (Authorization: Bearer <jwt>) - for user login
-        # 2. API Key (X-API-Key header) - for machine auth
-        # 3. Session ID (cookie or URL param) - for logged-in users
+        # 2. External JWT Token (URL ?token= parameter) - for iframe/link scenarios
+        # 3. API Key (X-API-Key header) - for machine auth
+        # 4. Session ID (cookie or URL param) - for logged-in users
 
-        # 1. First check for external JWT token (only from Authorization header)
-        # Note: We only try JWT token from Authorization header, not from X-API-Key
+        # 1. First check for external JWT token from Authorization header
         auth_header = (request.headers.get("authorization") or "").strip()
         if auth_header.lower().startswith("bearer "):
             token = auth_header[7:].strip()
@@ -135,14 +135,21 @@ class AuthMiddleware:
                     return user
                 # If JWT parsing fails, don't retry with API key - token format is different
 
-        # 2. Then check for API key (only from X-API-Key header, not Authorization)
+        # 2. Then check for external JWT token from URL ?token= parameter
+        url_token = (request.query_params.get("token") or "").strip()
+        if url_token:
+            user = self.auth_service.get_user_by_token(db, url_token)
+            if user:
+                return user
+
+        # 3. Then check for API key (only from X-API-Key header, not Authorization)
         api_key = (request.headers.get("x-api-key") or "").strip()
         if api_key:
             user = self.auth_service.get_user_by_api_key(db, api_key)
             if user:
                 return user
 
-        # 3. Finally check session
+        # 4. Finally check session
         session_id = _extract_session_id(request)
         if session_id:
             return self.auth_service.get_user_by_session(db, session_id)
@@ -347,7 +354,15 @@ def get_current_user_optional(
                 request.state.user = user
                 return user
 
-    # 2. Then try API Key (X-API-Key header only)
+    # 2. Then try external JWT token (from URL ?token= parameter)
+    url_token = (request.query_params.get("token") or "").strip()
+    if url_token:
+        user = auth_service.get_user_by_token(db, url_token)
+        if user:
+            request.state.user = user
+            return user
+
+    # 3. Then try API Key (X-API-Key header only)
     api_key = (request.headers.get("x-api-key") or "").strip()
     if api_key:
         user = auth_service.get_user_by_api_key(db, api_key)
@@ -355,7 +370,7 @@ def get_current_user_optional(
             request.state.user = user
             return user
 
-    # 3. Finally try session
+    # 4. Finally try session
     session_id = _extract_session_id(request)
     if session_id:
         user = auth_service.get_user_by_session(db, session_id)

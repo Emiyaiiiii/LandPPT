@@ -217,7 +217,7 @@
                     class="template-preview-iframe"
                     id="iframe-${template.id}"
                     onload="adjustIframeContent(${template.id})"
-                    sandbox="allow-modals"
+                    sandbox="allow-modals allow-scripts allow-same-origin"
                 ></iframe>
                 <div class="preview-overlay" onclick="event.stopPropagation(); previewTemplate(${template.id})">
                     <div class="preview-overlay-text">🔍 点击放大预览</div>
@@ -436,7 +436,13 @@
     }
 
     function getPPTGeneratorUrl() {
-        return `/projects/${projectId}/todo-editor?auto_start=true`;
+        let url = `/projects/${projectId}/todo-editor?auto_start=true`;
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('_session_id');
+        if (sessionId) {
+            url += `&_session_id=${encodeURIComponent(sessionId)}`;
+        }
+        return url;
     }
 
     async function startPPTGeneration() {

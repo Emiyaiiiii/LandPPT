@@ -478,8 +478,8 @@
         <p>管理您的所有 PPT 项目</p>
     </div>
     <div class="projects-header-actions">
-        <a href="/scenarios" class="action-btn action-btn--primary"><i class="fas fa-plus"></i> 创建新项目</a>
-        <a href="/dashboard" class="action-btn"><i class="fas fa-tachometer-alt"></i> 仪表板</a>
+        <a href="javascript:void(0)" onclick="navigateToUrl('/scenarios')" class="action-btn action-btn--primary"><i class="fas fa-plus"></i> 创建新项目</a>
+        <a href="javascript:void(0)" onclick="navigateToUrl('/dashboard')" class="action-btn"><i class="fas fa-tachometer-alt"></i> 仪表板</a>
     </div>
 </div>
 
@@ -524,7 +524,7 @@
 
         <div class="projects-table-body">
             {% for project in projects %}
-            <div class="project-list-item" onclick="window.location.href='/projects/{{ project.project_id }}'">
+            <div class="project-list-item" onclick="navigateToProject('{{ project.project_id }}')">
                 <div class="project-status">
                     {% if project.status == 'completed' %}
                         <span class="status-badge status-badge--completed">已完成</span>
@@ -573,10 +573,10 @@
 
                 <div class="table-action-group" onclick="event.stopPropagation();">
                     {% if project.status == 'completed' %}
-                        <a href="/projects/{{ project.project_id }}/edit" class="action-btn" title="编辑">编辑</a>
-                        <a href="/projects/{{ project.project_id }}/fullscreen" class="action-btn" title="预览" target="_blank">预览</a>
+                        <a href="javascript:void(0)" onclick="navigateToUrl('/projects/{{ project.project_id }}/edit')" class="action-btn" title="编辑">编辑</a>
+                        <a href="javascript:void(0)" onclick="navigateToUrl('/projects/{{ project.project_id }}/fullscreen')" class="action-btn" title="预览">预览</a>
                     {% elif project.status == 'in_progress' %}
-                        <a href="/projects/{{ project.project_id }}/todo" class="action-btn" title="查看进度">进度</a>
+                        <a href="javascript:void(0)" onclick="navigateToUrl('/projects/{{ project.project_id }}/todo')" class="action-btn" title="查看进度">进度</a>
                     {% endif %}
                     <button onclick="event.stopPropagation(); confirmDeleteProject('{{ project.project_id }}', '{{ project.title }}')" class="action-btn action-btn--danger" title="删除">删除</button>
                 </div>
@@ -590,13 +590,13 @@
     {% if total > page_size %}
     <div class="pagination-bar">
         {% if page > 1 %}
-        <a href="?page={{ page - 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-secondary btn-sm">← 上一页</a>
+        <a href="javascript:void(0)" onclick="navigateToPage({{ page - 1 }}{% if status_filter %}, '{{ status_filter }}'{% endif %})" class="btn btn-secondary btn-sm">← 上一页</a>
         {% endif %}
 
         <span class="page-info">第 {{ page }} 页，共 {{ (total + page_size - 1) // page_size }} 页</span>
 
         {% if page * page_size < total %}
-        <a href="?page={{ page + 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-secondary btn-sm">下一页 →</a>
+        <a href="javascript:void(0)" onclick="navigateToPage({{ page + 1 }}{% if status_filter %}, '{{ status_filter }}'{% endif %})" class="btn btn-secondary btn-sm">下一页 →</a>
         {% endif %}
     </div>
     {% endif %}
@@ -620,9 +620,9 @@
             {% endif %}
         </p>
         <div class="table-action-group" style="justify-content: center;">
-            <a href="/scenarios" class="action-btn action-btn--primary">创建项目</a>
+            <a href="javascript:void(0)" onclick="navigateToUrl('/scenarios')" class="action-btn action-btn--primary">创建项目</a>
             {% if status_filter %}
-            <a href="/projects" class="action-btn">查看全部</a>
+            <a href="javascript:void(0)" onclick="navigateToUrl('/projects')" class="action-btn">查看全部</a>
             {% endif %}
         </div>
     </div>
@@ -658,28 +658,68 @@
 <script>
 let currentDeleteProjectId = null;
 
-function getSessionIdParam() {
+function getAuthParam() {
     const params = new URLSearchParams(window.location.search);
-    return params.get('_session_id');
+    const token = params.get('token');
+    if (token) {
+        return { key: 'token', value: token };
+    }
+    const sessionId = params.get('_session_id');
+    if (sessionId) {
+        return { key: '_session_id', value: sessionId };
+    }
+    return null;
 }
 
-function reloadWithSessionId() {
-    const sessionId = getSessionIdParam();
-    if (sessionId && !window.location.search.includes('_session_id=')) {
-        const separator = window.location.search.includes('?') ? '&' : '?';
-        window.location.href = window.location.pathname + window.location.search + separator + '_session_id=' + encodeURIComponent(sessionId);
+function appendAuthToUrl(url) {
+    const auth = getAuthParam();
+    if (auth) {
+        const separator = url.includes('?') ? '&' : '?';
+        return url + separator + auth.key + '=' + encodeURIComponent(auth.value);
+    }
+    return url;
+}
+
+function reloadWithAuth() {
+    const auth = getAuthParam();
+    if (auth) {
+        const url = new URL(window.location);
+        url.searchParams.set(auth.key, auth.value);
+        window.location.href = url.toString();
     } else {
         window.location.reload();
     }
 }
 
-function redirectWithSessionId(url) {
-    const sessionId = getSessionIdParam();
-    if (sessionId) {
-        const separator = url.includes('?') ? '&' : '?';
-        return url + separator + '_session_id=' + encodeURIComponent(sessionId);
+function navigateToUrl(url) {
+    window.location.href = appendAuthToUrl(url);
+}
+
+function navigateToProject(projectId) {
+    navigateToUrl('/projects/' + projectId);
+}
+
+function openProjectUrl(url) {
+    window.open(appendAuthToUrl(url), '_blank');
+}
+
+function navigateToPage(page, statusFilter) {
+    const url = new URL(window.location);
+    url.searchParams.set('page', page);
+    if (statusFilter) {
+        url.searchParams.set('status', statusFilter);
+    } else {
+        url.searchParams.delete('status');
     }
-    return url;
+    const auth = getAuthParam();
+    if (auth) {
+        url.searchParams.set(auth.key, auth.value);
+    }
+    window.location.href = url.toString();
+}
+
+function redirectWithSessionId(url) {
+    return appendAuthToUrl(url);
 }
 
 function filterProjects() {
@@ -691,6 +731,10 @@ function filterProjects() {
     if (status) { url.searchParams.set('status', status); }
     else { url.searchParams.delete('status'); }
     url.searchParams.delete('page');
+    const auth = getAuthParam();
+    if (auth) {
+        url.searchParams.set(auth.key, auth.value);
+    }
     setTimeout(() => { window.location.href = url.toString(); }, 300);
 }
 
@@ -741,7 +785,7 @@ async function executeDeleteProject() {
         const result = await response.json();
         if (response.ok) {
             showNotification('项目删除成功！', 'success');
-            setTimeout(() => reloadWithSessionId(), 1500);
+            setTimeout(() => reloadWithAuth(), 1500);
         } else { throw new Error(result.detail || '删除失败'); }
     } catch (error) {
         showNotification('删除失败：' + error.message, 'error');
@@ -778,8 +822,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey || e.metaKey) {
             switch(e.key) {
                 case 'f': e.preventDefault(); document.getElementById('statusFilter')?.focus(); break;
-                case 'n': e.preventDefault(); window.location.href = '/scenarios'; break;
-                case 'd': e.preventDefault(); window.location.href = '/dashboard'; break;
+                case 'n': e.preventDefault(); navigateToUrl('/scenarios'); break;
+                case 'd': e.preventDefault(); navigateToUrl('/dashboard'); break;
             }
         }
     });
@@ -787,7 +831,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 const hasInProgressProjects = {{ projects | selectattr('status', 'equalto', 'in_progress') | list | length }} > 0;
 if (hasInProgressProjects) {
-    setInterval(() => window.location.reload(), 30000);
+    setInterval(() => reloadWithAuth(), 30000);
 }
 </script>
 {% endblock %}

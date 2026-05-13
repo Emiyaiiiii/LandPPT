@@ -221,7 +221,7 @@
         </div>
         <div class="modal-body" style="text-align: center;">
             <iframe id="previewFrame"
-                style="width: 1280px; height: 720px; border: 1px solid #ddd; transform: scale(0.8); transform-origin: top left; margin: 0 auto;" sandbox="allow-modals"></iframe>
+                style="width: 1280px; height: 720px; border: 1px solid #ddd; transform: scale(0.8); transform-origin: top left; margin: 0 auto;" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
         </div>
     </div>
 </div>
@@ -1038,7 +1038,7 @@
                     class="template-preview-iframe"
                     id="iframe-${template.id}"
                     onload="adjustIframeContent(${template.id})"
-                    sandbox="allow-modals"
+                    sandbox="allow-modals allow-scripts allow-same-origin"
                 ></iframe>
                 <div class="preview-overlay" onclick="event.stopPropagation(); previewTemplate(${template.id})">
                     <div class="preview-overlay-text">🔍 点击放大预览</div>
@@ -1309,7 +1309,13 @@
 
             // Redirect to TODO board to start PPT generation
             console.log('Redirecting to TODO board...');
-            window.location.href = `/projects/${projectId}/todo`;
+            let url = `/projects/${projectId}/todo`;
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('_session_id');
+            if (sessionId) {
+                url += `?_session_id=${encodeURIComponent(sessionId)}`;
+            }
+            window.location.href = url;
 
         } catch (error) {
             console.error('Error starting PPT generation:', error);
@@ -1362,7 +1368,13 @@
 
             // Redirect to TODO board to start PPT generation
             console.log('Redirecting to TODO board...');
-            window.location.href = `/projects/${projectId}/todo`;
+            let url = `/projects/${projectId}/todo`;
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('_session_id');
+            if (sessionId) {
+                url += `?_session_id=${encodeURIComponent(sessionId)}`;
+            }
+            window.location.href = url;
 
         } catch (error) {
             console.error('Error using default template:', error);

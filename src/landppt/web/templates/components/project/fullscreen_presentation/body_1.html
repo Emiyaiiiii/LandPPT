@@ -18,7 +18,7 @@
         </div>
 
         <!-- 退出按钮 -->
-        <button class="exit-btn" onclick="exitPresentation()" title="退出演示 (ESC)">
+        <button class="exit-btn" onclick="console.log('[ExitBtn] Direct click'); exitPresentation();" title="退出演示 (ESC)" style="z-index: 9999 !important; pointer-events: auto !important;">
             <i class="fas fa-times"></i>
         </button>
 
@@ -63,7 +63,7 @@
             {% for slide in project.slides_data %}
             <div class="thumbnail {% if loop.index == 1 %}active{% endif %}" onclick="goToSlide({{ loop.index0 }})"
                 data-slide-index="{{ loop.index0 }}">
-                <iframe srcdoc="{{ slide.html_content | e }}" title="Slide {{ loop.index }}" sandbox="allow-modals"></iframe>
+                <iframe srcdoc="{{ slide.html_content | e }}" title="Slide {{ loop.index }}" sandbox="allow-modals allow-scripts allow-same-origin"></iframe>
                 <div class="thumbnail-number">{{ loop.index }}</div>
             </div>
             {% endfor %}
