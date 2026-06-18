@@ -66,6 +66,7 @@
                 // 发送AI增强请求
                 const response = await fetch('/api/ai/enhance-all-bullet-points', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json'
                     },

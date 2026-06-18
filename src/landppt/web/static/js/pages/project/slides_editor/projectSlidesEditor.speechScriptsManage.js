@@ -251,6 +251,7 @@
             try {
                 const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-script/export`, {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -562,6 +563,7 @@
             try {
                 const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-scripts/humanize`, {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -611,6 +613,7 @@
             try {
                 const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-scripts/humanize`, {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -700,6 +703,7 @@
                 const lang = getSpeechLanguage();
                 const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-scripts/slide/${slideIndex}?language=${encodeURIComponent(lang)}`, {
                     method: 'PUT',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -767,6 +771,7 @@
                 // 调用生成API
                 const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-script/generate`, {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json'
                     },
@@ -897,7 +902,7 @@
 
                 try {
                     const lang = getSpeechLanguage();
-                    const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-scripts?language=${encodeURIComponent(lang)}`);
+                    const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-scripts?language=${encodeURIComponent(lang)}`, { credentials: 'same-origin' });
                     const result = await response.json();
 
                     if (result.success && result.scripts && result.scripts.length > 0) {
@@ -937,7 +942,7 @@
                 console.log('Fetching speech scripts from API...');
                 // Fetch current speech scripts
                 const lang = getSpeechLanguage();
-                const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-scripts?language=${encodeURIComponent(lang)}`);
+                const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-scripts?language=${encodeURIComponent(lang)}`, { credentials: 'same-origin' });
                 const result = await response.json();
 
                 console.log('API response:', result);
@@ -1043,7 +1048,8 @@ function closeSpeechScriptsDialog() {
             try {
                 const lang = getSpeechLanguage();
                 const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-scripts/slide/${slideIndex}?language=${encodeURIComponent(lang)}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    credentials: 'same-origin'
                 });
 
                 const result = await response.json();

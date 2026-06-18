@@ -6,7 +6,8 @@
         function createClientExportAbortError(message = '导出已取消') {
             try {
                 return new DOMException(message, 'AbortError');
-            } catch (_) {
+            } catch (err) {
+                    console.error("[Export-Base] Error:", err);
                 const error = new Error(message);
                 error.name = 'AbortError';
                 return error;
@@ -42,7 +43,8 @@
 
         function updateExportCancelButton(visible, disabled = false, label = '取消导出') {
             const button = document.getElementById('exportCancelBtn');
-            if (!button) return;
+            if (!button) console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
             button.style.display = visible ? 'inline-flex' : 'none';
             button.disabled = !!disabled;
             button.innerHTML = disabled
@@ -52,14 +54,16 @@
 
         function cancelClientExport() {
             if (!isClientExporting || !clientExportAbortController || clientExportCancelRequested) {
-                return;
+                console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
             }
             clientExportCancelRequested = true;
             updateExportCancelButton(true, true, '正在取消...');
             updateExportUI('ban', '', '正在取消导出', '请稍候，正在终止当前客户端导出任务...', undefined, '取消中...');
             try {
                 clientExportAbortController.abort(createClientExportAbortError());
-            } catch (_) {
+            } catch (err) {
+                    console.error("[Export-Base] Error:", err);
                 clientExportAbortController.abort();
             }
         }
@@ -114,7 +118,8 @@
                 ctx.fillStyle = '#000';
                 ctx.fillStyle = colorValue;
                 return ctx.fillStyle || colorValue;
-            } catch (_) {
+            } catch (err) {
+                    console.error("[Export-Base] Error:", err);
                 return colorValue;
             }
         }
@@ -197,7 +202,8 @@
         }
 
         async function waitForDocumentFontsReady(doc, timeoutMs = 1500) {
-            if (!doc || !doc.fonts || !doc.fonts.ready) return;
+            if (!doc || !doc.fonts || !doc.fonts.ready) console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
             try {
                 await Promise.race([
                     doc.fonts.ready.catch(() => null),
@@ -284,10 +290,12 @@
         }
 
         async function waitForDocumentImagesReady(doc, timeoutMs = 2400) {
-            if (!doc) return;
+            if (!doc) console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
             const imgs = Array.from(doc.images || []);
             const pending = imgs.filter(img => !img.complete);
-            if (pending.length === 0) return;
+            if (pending.length === 0) console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
 
             await Promise.race([
                 Promise.allSettled(
@@ -306,20 +314,44 @@
         }
 
         async function waitForAnimationFrames(win, count = 2) {
+            console.log('[Export-Base] waitForAnimationFrames called, count:', count);
             if (!win || typeof win.requestAnimationFrame !== 'function') {
+                console.log('[Export-Base] No requestAnimationFrame, using sleep fallback');
                 await _sleep(34 * count);
                 return;
             }
+            let successCount = 0;
             for (let i = 0; i < count; i++) {
-                await new Promise(resolve => win.requestAnimationFrame(() => resolve()));
+                console.log('[Export-Base] Waiting for animation frame', i + 1, 'of', count);
+                await new Promise((resolve) => {
+                    let resolved = false;
+                    const resolveOnce = () => {
+                        if (resolved) return;
+                        resolved = true;
+                        successCount++;
+                        console.log('[Export-Base] Animation frame received (total success:', successCount + ')');
+                        resolve();
+                    };
+                    const timeoutId = setTimeout(() => {
+                        console.log('[Export-Base] Animation frame timeout, using fallback');
+                        resolveOnce();
+                    }, 150);
+                    win.requestAnimationFrame(() => {
+                        clearTimeout(timeoutId);
+                        resolveOnce();
+                    });
+                });
             }
+            console.log('[Export-Base] waitForAnimationFrames completed, success rate:', successCount + '/' + count);
         }
 
         async function waitForDocumentMutationIdle(doc, quietMs = 320, timeoutMs = 2200) {
-            if (!doc || !doc.documentElement) return;
+            if (!doc || !doc.documentElement) console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
             if (typeof MutationObserver !== 'function') {
                 await _sleep(Math.min(Math.max(quietMs, 0), Math.max(timeoutMs, 0)));
-                return;
+                console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
             }
 
             const safeQuietMs = Math.max(80, Math.round(Number.isFinite(quietMs) ? quietMs : 320));
@@ -331,7 +363,8 @@
                 let hardTimer = null;
 
                 const finish = () => {
-                    if (settled) return;
+                    if (settled) console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
                     settled = true;
                     if (quietTimer) clearTimeout(quietTimer);
                     if (hardTimer) clearTimeout(hardTimer);
@@ -370,8 +403,10 @@
                         attributes: true,
                         attributeFilter: ['style', 'class', 'src', 'href', 'hidden', 'open']
                     });
-                } catch (_) {
+                } catch (err) {
+                    console.error("[Export-Base] Error:", err);
                     resolve();
+                    console.log("[Export-Base] waitForIframeVisualReady returning");
                     return;
                 }
 
@@ -386,7 +421,8 @@
             try {
                 const dataUrl = canvas.toDataURL('image/png');
                 if (dataUrl && dataUrl.length > 1800) return true;
-            } catch (_) {
+            } catch (err) {
+                    console.error("[Export-Base] Error:", err);
                 // Tainted canvas should be considered ready.
                 return true;
             }
@@ -397,26 +433,31 @@
                 const y = Math.max(0, Math.min(canvas.height - 1, Math.floor(canvas.height / 2)));
                 const px = ctx.getImageData(x, y, 1, 1).data;
                 return !!(px[0] || px[1] || px[2] || px[3]);
-            } catch (_) {
+            } catch (err) {
+                    console.error("[Export-Base] Error:", err);
                 return true;
             }
         }
 
         async function waitForCanvasPaintReady(doc, timeoutMs = 2400) {
-            if (!doc) return;
+            if (!doc) console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
             const canvases = Array.from(doc.querySelectorAll('canvas'));
-            if (canvases.length === 0) return;
+            if (canvases.length === 0) console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
 
             const start = Date.now();
             while (Date.now() - start < timeoutMs) {
                 const allReady = canvases.every(isCanvasLikelyPainted);
-                if (allReady) return;
+                if (allReady) console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
                 await _sleep(120);
             }
         }
 
         function settleCssAnimationsToFinalState(doc) {
-            if (!doc || typeof doc.getAnimations !== 'function') return;
+            if (!doc || typeof doc.getAnimations !== 'function') console.log("[Export-Base] waitForIframeVisualReady returning");
+                    return;
             try {
                 const animations = doc.getAnimations({ subtree: true }) || [];
                 for (const animation of animations) {
@@ -435,6 +476,7 @@
         }
 
         async function waitForIframeVisualReady(tempIframe, timeoutMs = 3200, options = {}) {
+            console.log("[Export-Base] waitForIframeVisualReady called, timeout:", timeoutMs);
             const imageTimeoutMs = Number.isFinite(options.imageTimeoutMs) ? options.imageTimeoutMs : 3000;
             const animationSettleCapMs = Number.isFinite(options.animationSettleCapMs) ? options.animationSettleCapMs : 5500;
             const start = Date.now();
@@ -467,10 +509,15 @@
                     } catch (_) { }
 
                     const iframeWin = tempIframe.contentWindow;
+                    console.log("[Export-Base] Waiting for fonts...");
                     await waitForDocumentFontsReady(iframeDoc, 1200);
+                    console.log("[Export-Base] Waiting for images...");
                     await waitForDocumentImagesReady(iframeDoc, imageTimeoutMs);
+                    console.log("[Export-Base] Waiting for formula...");
                     await waitForFormulaRenderReady(iframeDoc, 2400);
+                    console.log("[Export-Base] Waiting for canvas...");
                     await waitForCanvasPaintReady(iframeDoc, 2600);
+                    console.log("[Export-Base] Waiting for animation frames...");
                     await waitForAnimationFrames(iframeWin, 2);
 
                     // 页面常见入场动画会在 onload 后通过 setTimeout/改 class/改 style 分批触发。
@@ -493,8 +540,10 @@
                     await waitForAnimationFrames(iframeWin, 1);
                     tagFormulaNodesForExport(iframeDoc.body || iframeDoc);
                     await waitForCanvasPaintReady(iframeDoc, 900);
+                    console.log("[Export-Base] waitForIframeVisualReady returning");
                     return;
-                } catch (_) {
+                } catch (err) {
+                    console.error("[Export-Base] Error:", err);
                     await _sleep(120);
                 }
             }

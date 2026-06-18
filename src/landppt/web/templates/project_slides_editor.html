@@ -16796,11 +16796,18 @@
             if (subtitle !== undefined && exportSubtitle) exportSubtitle.textContent = subtitle;
             if (progress !== undefined && exportProgressBar) exportProgressBar.style.width = progress + '%';
             if (status && exportStatus) exportStatus.textContent = status;
+            
+            console.log('[Export] UI updated:', { icon: icon, title: title, subtitle: subtitle, progress: progress, status: status });
         }
 
         function showExportOverlay() {
             const overlay = document.getElementById('exportOverlay');
-            if (overlay) overlay.classList.add('active');
+            if (overlay) {
+                overlay.classList.add('active');
+                console.log('[Export] Overlay shown');
+            } else {
+                console.error('[Export] exportOverlay element not found!');
+            }
             document.body.style.overflow = 'hidden';
         }
 
@@ -17307,15 +17314,18 @@
 
             const run = (async () => {
                 try {
+                    console.log('[Export-Template] Fetching icon rules from:', '/static/config/icon-export-rules.json?ts=' + Date.now());
                     const response = await fetch('/static/config/icon-export-rules.json?ts=' + Date.now(), {
                         cache: 'no-store'
                     });
+                    console.log('[Export-Template] Icon rules fetch response status:', response.status);
                     if (!response.ok) throw new Error('HTTP ' + response.status);
                     const payload = await response.json();
                     runtimeIconExportRulesRaw = sanitizeIconExportRules(payload);
                     runtimeIconExportRulesCompiled = null;
+                    console.log('[Export-Template] Icon rules loaded successfully');
                 } catch (err) {
-                    console.warn('Failed to load icon export rules JSON, using default rules:', err);
+                    console.warn('[Export-Template] Failed to load icon export rules JSON, using default rules:', err);
                     if (!runtimeIconExportRulesRaw) {
                         runtimeIconExportRulesRaw = sanitizeIconExportRules(null);
                         runtimeIconExportRulesCompiled = null;
@@ -18104,7 +18114,11 @@
         }
 
         async function exportSlidesToPptxClient() {
-            if (isClientExporting) return;
+            console.log('[Export] Starting client export');
+            if (isClientExporting) {
+                console.log('[Export] Already exporting, returning');
+                return;
+            }
             if (!slidesData || slidesData.length === 0) {
                 showNotification('没有可导出的幻灯片', 'warning');
                 return;
@@ -18112,8 +18126,11 @@
 
             let exporter = null;
             try {
+                console.log('[Export] Loading dom-to-pptx library...');
                 exporter = await ensureDomToPptxReadyForExport();
+                console.log('[Export] dom-to-pptx library loaded');
             } catch (e) {
+                console.error('[Export] Failed to load dom-to-pptx:', e);
                 showNotification((e && e.message) || 'PPTX 导出库未加载，请检查网络连接后刷新页面重试。', 'error');
                 return;
             }
@@ -18125,6 +18142,7 @@
 
             isClientExporting = true;
 
+            console.log('[Export] Showing export overlay...');
             updateExportUI('cog', 'spinning', '正在导出 PPTX', '请稍候，正在将幻灯片转换为 PowerPoint 文件...', 0, '准备中...');
             showExportOverlay();
 
@@ -18147,8 +18165,10 @@
 
             try {
                 // Load latest icon rules JSON before export (supports online hot-update).
+                console.log('[Export] Loading icon rules...');
                 updateExportUI(null, null, null, '加载图标导出规则...', 3, '准备中...');
                 await refreshIconExportRules(true);
+                console.log('[Export] Icon rules loaded');
                 const iconRulesForExport = getCompiledIconExportRules().rawRules;
                 if (typeof exporter.setIconRules === 'function') {
                     exporter.setIconRules(iconRulesForExport);

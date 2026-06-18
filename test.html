@@ -43,10 +43,10 @@
     <div class="container">
         <h1>简单 Iframe 测试</h1>
         <div class="controls">
-            <input type="text" id="url" placeholder="http://localhost:8000/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4MTI5NDU4LCJpYXQiOjE3NzgwNDMwNTgsImp0aSI6IjJkMmI2NTRjNDY0MjQ4N2Q4YTNjN2JkNzI3NDRlN2JlIiwidXNlcl9pZCI6M30.qUXadZ8AtR6Bbd0ctTogUop--J8qpK815jFI4F0_6w4" style="width: 60%;">
+            <input type="text" id="url" placeholder="http://localhost:8000" style="width: 60%;">
             <button onclick="load()">加载</button>
         </div>
-        <iframe id="iframe" sandbox="allow-modals allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+        <iframe id="iframe" sandbox="allow-modals allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation allow-top-navigation-by-user-activation"></iframe>
     </div>
 
     <script>

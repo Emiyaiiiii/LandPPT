@@ -19,7 +19,8 @@ async function exportToPDF() {
     try {
         // 使用新的异步导出端点
         const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/export/pdf/async`, {
-            method: 'POST'
+            method: 'POST',
+            credentials: 'same-origin'
         });
 
         if (!response.ok) {
@@ -76,7 +77,9 @@ async function trackPdfExportTask(taskId, progressToast) {
         const poll = async () => {
             attempts += 1;
             try {
-                const response = await fetch(`/api/landppt/tasks/${taskId}`);
+                const response = await fetch(`/api/landppt/tasks/${taskId}`, {
+                    credentials: 'same-origin'
+                });
                 if (!response.ok) {
                     throw new Error(`任务状态查询失败(${response.status})`);
                 }
@@ -157,7 +160,9 @@ async function exportToPPTX() {
     updateProgressToast(progressToast, '正在准备导出文件...', 10);
 
     try {
-        const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/export/pptx`);
+        const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/export/pptx`, {
+            credentials: 'same-origin'
+        });
         if (!response.ok) {
             throw new Error(`服务返回异常(${response.status})`);
         }
@@ -210,7 +215,9 @@ async function trackPptxExportTask(taskId, progressToast, options = {}) {
         const poll = async () => {
             attempts += 1;
             try {
-                const response = await fetch(`/api/landppt/tasks/${taskId}`);
+                const response = await fetch(`/api/landppt/tasks/${taskId}`, {
+                    credentials: 'same-origin'
+                });
                 if (!response.ok) {
                     throw new Error(`任务状态查询失败(${response.status})`);
                 }
@@ -271,8 +278,24 @@ async function trackPptxExportTask(taskId, progressToast, options = {}) {
 }
 
 function triggerFileDownload(url) {
+    // For iframe context, use window.parent to trigger download at top level
+    // This prevents browser download restrictions in iframes
+    const targetWindow = window.parent || window;
+    
+    // Method 1: Try using top-level window (works better in iframes)
+    if (targetWindow !== window) {
+        try {
+            targetWindow.location.href = url;
+            return;
+        } catch (e) {
+            // Cross-origin access might be blocked, fall through to link method
+        }
+    }
+    
+    // Method 2: Create link with _top target to escape iframe
     const link = document.createElement('a');
     link.href = url;
+    link.target = '_top';
     link.download = '';
     link.style.display = 'none';
     document.body.appendChild(link);
@@ -313,6 +336,7 @@ async function exportToPPTXAsImages() {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'same-origin',
             body: JSON.stringify({
                 slides: slides
             })
@@ -364,9 +388,25 @@ function downloadHTML() {
     // 显示提示信息
     showNotification('正在准备HTML文件包...', 'info');
 
+    // For iframe context, use top-level navigation to avoid download restrictions
+    const targetWindow = window.parent || window;
+    const downloadUrl = `/api/projects/${window.landpptEditorConfig.projectId}/export/html`;
+    
+    // Method 1: Try top-level window (works better in iframes)
+    if (targetWindow !== window) {
+        try {
+            targetWindow.location.href = downloadUrl;
+            setTimeout(() => showNotification('HTML文件包下载已开始', 'success'), 1000);
+            return;
+        } catch (e) {
+            // Cross-origin access might be blocked, fall through to link method
+        }
+    }
+    
     // 创建下载链接
     const downloadLink = document.createElement('a');
-    downloadLink.href = `/api/projects/${window.landpptEditorConfig.projectId}/export/html`;
+    downloadLink.href = downloadUrl;
+    downloadLink.target = '_top';
     downloadLink.download = '';
     downloadLink.style.display = 'none';
 
@@ -452,6 +492,7 @@ function exportSingleSlideHTML() {
             const a = document.createElement('a');
             a.href = url;
             a.download = `slide_${contextMenuSlideIndex + 1}_${slide.title || 'untitled'}.html`;
+            a.target = '_top';
 
             // Trigger download
             document.body.appendChild(a);
@@ -476,6 +517,7 @@ async function showShareDialog() {
         // 调用API生成分享链接
         const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/share/generate`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -603,6 +645,7 @@ async function disableSharing() {
     try {
         const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/share/disable`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             }

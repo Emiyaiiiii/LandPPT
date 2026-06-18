@@ -90,6 +90,7 @@
         }
 
         async function ensureIframeHasLatestContent(iframe, slideHtml, options = {}) {
+            console.log('[Export-Render] ensureIframeHasLatestContent called');
             if (!iframe) return false;
 
             try {
@@ -99,28 +100,42 @@
                 const imageTimeoutMs = Number.isFinite(options.imageTimeoutMs) ? options.imageTimeoutMs : 3000;
                 const animationSettleCapMs = Number.isFinite(options.animationSettleCapMs) ? options.animationSettleCapMs : 5500;
                 const preparedHtml = prepareSlideHtmlForExport(slideHtml);
+                console.log('[Export-Render] Prepared HTML length:', preparedHtml ? preparedHtml.length : 0);
                 if (forceRefresh || iframe.getAttribute('data-current-content') !== preparedHtml) {
+                    console.log('[Export-Render] Setting iframe content...');
                     await new Promise((resolve) => {
                         let settled = false;
                         const done = () => {
                             if (settled) return;
                             settled = true;
                             iframe.removeEventListener('load', done);
+                            console.log('[Export-Render] Iframe load resolved');
                             resolve();
                         };
                         iframe.addEventListener('load', done, { once: true });
                         setSafeIframeContent(iframe, preparedHtml, { force: true });
+                        console.log('[Export-Render] setSafeIframeContent called, setting timeout for', loadTimeoutMs, 'ms');
                         setTimeout(done, loadTimeoutMs);
                     });
+                    console.log('[Export-Render] Iframe content set, waiting for visual ready...');
+                } else {
+                    console.log('[Export-Render] Iframe content already set, skipping');
                 }
 
+                console.log('[Export-Render] Waiting for iframe visual ready...');
                 await waitForIframeVisualReady(iframe, visualTimeoutMs, { imageTimeoutMs, animationSettleCapMs });
+                console.log('[Export-Render] Iframe visual ready, getting document...');
                 const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                console.log('[Export-Render] Document ready, waiting for fonts...');
                 await waitForDocumentFontsReady(iframeDoc, 1200);
+                console.log('[Export-Render] Fonts ready, waiting for formula render...');
                 await waitForFormulaRenderReady(iframeDoc, 2000);
+                console.log('[Export-Render] Formula render ready, tagging nodes...');
                 tagFormulaNodesForExport(iframeDoc.body || iframeDoc);
+                console.log('[Export-Render] ensureIframeHasLatestContent returning true');
                 return true;
-            } catch (_) {
+            } catch (err) {
+                console.error('[Export-Render] ensureIframeHasLatestContent error:', err);
                 return false;
             }
         }

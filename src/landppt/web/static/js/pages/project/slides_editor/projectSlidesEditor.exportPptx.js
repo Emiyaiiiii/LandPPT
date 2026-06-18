@@ -1,5 +1,9 @@
         async function exportSlidesToPptxClient(options = {}) {
-            if (isClientExporting) return;
+            console.log('[Export] Starting client export (file version)');
+            if (isClientExporting) {
+                console.log('[Export] Already exporting, returning');
+                return;
+            }
             if (!slidesData || slidesData.length === 0) {
                 showNotification('没有可导出的幻灯片', 'warning');
                 return;
@@ -18,8 +22,11 @@
 
             let exporter = null;
             try {
+                console.log('[Export] Loading dom-to-pptx library...');
                 exporter = await ensureDomToPptxReadyForExport();
+                console.log('[Export] dom-to-pptx library loaded');
             } catch (e) {
+                console.error('[Export] Failed to load dom-to-pptx:', e);
                 showNotification((e && e.message) || 'PPTX 导出库未加载，请检查网络连接后刷新页面重试。', 'error');
                 return;
             }
@@ -34,6 +41,7 @@
             clientExportAbortController = createClientExportAbortController();
             const exportSignal = clientExportAbortController.signal;
 
+            console.log('[Export] Showing export overlay...');
             updateExportUI(
                 'cog',
                 'spinning',
@@ -71,12 +79,21 @@
                 throwIfClientExportCancelled(exportSignal);
                 // Load latest icon rules JSON before export (supports online hot-update).
                 updateExportUI(null, null, null, '加载图标导出规则...', 3, '准备中...');
-                await refreshIconExportRules(true);
+                console.log('[Export] About to call refreshIconExportRules...');
+                try {
+                    await refreshIconExportRules(true);
+                    console.log('[Export] refreshIconExportRules completed successfully');
+                } catch (iconErr) {
+                    console.error('[Export] refreshIconExportRules failed:', iconErr);
+                }
                 throwIfClientExportCancelled(exportSignal);
+                console.log('[Export] Getting icon rules...');
                 const iconRulesForExport = getCompiledIconExportRules().rawRules;
+                console.log('[Export] Icon rules ready, setting to exporter...');
                 if (typeof exporter.setIconRules === 'function') {
                     exporter.setIconRules(iconRulesForExport);
                 }
+                console.log('[Export] Icon rules set, loading speech scripts...');
 
                 // Best-effort: load speech scripts and attach to PPTX speaker notes.
                 let slideNotes = [];
@@ -93,15 +110,21 @@
 
                     const fetchScripts = async (lang) => {
                         try {
+                            console.log('[Export] Fetching speech scripts for language:', lang);
                             const resp = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/speech-scripts?language=${encodeURIComponent(lang)}`, {
                                 credentials: 'same-origin'
                             });
+                            console.log('[Export] Speech scripts fetch response status:', resp.status);
                             const result = await resp.json().catch(() => ({}));
+                            console.log('[Export] Speech scripts fetch result:', JSON.stringify(result).substring(0, 200));
                             if (resp.ok && result && result.success && Array.isArray(result.scripts)) {
                                 return result.scripts;
                             }
-                        } catch (_) { }
-                        return [];
+                            return [];
+                        } catch (err) {
+                            console.error('[Export] Speech scripts fetch error:', err);
+                            return [];
+                        }
                     };
 
                     if (!scripts.length) {
@@ -130,12 +153,15 @@
                             const t = notesByIndex.get(it.originalIndex);
                             return t ? String(t).trim() : '';
                         });
+                    } else {
+                        console.log('[Export] No speech scripts found, continuing without notes');
                     }
                 } catch (e) {
                     console.warn('Failed to load speech scripts for PPTX notes:', e);
                     slideNotes = [];
                 }
 
+                console.log('[Export] Creating render iframe...');
                 // Use a single reusable iframe renderer to keep memory stable on large decks.
                 const renderIframe = document.createElement('iframe');
                 renderIframe.style.cssText = 'width:1280px;height:720px;border:none;position:absolute;left:0;top:0;';
@@ -145,8 +171,10 @@
 
                 updateExportUI(null, null, null, '准备渲染导出内容（低内存DOM模式）...', 8, '准备中...');
 
+                console.log('[Export] Starting slide element stream, totalSlides:', totalSlides);
                 const slideElementStream = (async function* () {
                     for (let i = 0; i < totalSlides; i++) {
+                        console.log('[Export] Processing slide', i + 1, 'of', totalSlides);
                         throwIfClientExportCancelled(exportSignal);
                         const item = sortedSlides[i];
                         const slide = item.slide;
@@ -157,6 +185,7 @@
                         let tempIframe = null;
                         let container = null;
                         try {
+                            console.log('[Export] Calling ensureIframeHasLatestContent for slide', i + 1);
                             const ok = await ensureIframeHasLatestContent(renderIframe, slide.html_content, {
                                 forceRefresh: true,
                                 loadTimeoutMs: 7000,
@@ -164,6 +193,7 @@
                                 imageTimeoutMs: 4200,
                                 animationSettleCapMs: 6500
                             });
+                            console.log('[Export] ensureIframeHasLatestContent returned:', ok);
                             throwIfClientExportCancelled(exportSignal);
 
                             if (ok) {
@@ -243,7 +273,8 @@
                 const fileName = `${fileBaseName}.pptx`;
 
                 throwIfClientExportCancelled(exportSignal);
-                await exporter.exportToPptx(slideElementStream, {
+                console.log('[Export] About to call exporter.exportToPptx, fileName:', fileName);
+                const result = await exporter.exportToPptx(slideElementStream, {
                     fileName: fileName,
                     autoEmbedFonts: true,
                     svgAsVector: false,
@@ -252,10 +283,64 @@
                     signal: exportSignal,
                     shouldCancel: () => !!(clientExportCancelRequested || (exportSignal && exportSignal.aborted))
                 });
+                console.log('[Export] exporter.exportToPptx completed successfully, result:', typeof result);
+
+                // Only trigger manual download if in iframe (where native download may not work)
+                // In normal browser window, exportToPptx handles download internally
+                const isInIframe = window !== window.top;
+                console.log('[Export] isInIframe:', isInIframe, '(window === window.top:', window === window.top, ')');
+                
+                if (isInIframe && result && (result.blob || result.url || result instanceof Blob)) {
+                    console.log('[Export] In iframe, manually triggering download');
+                    const blob = result.blob || result;
+                    console.log('[Export] Blob type:', blob.type, 'Blob size:', blob.size);
+                    
+                    // Create blob URL
+                    const blobUrl = URL.createObjectURL(blob);
+                    console.log('[Export] Blob URL created:', blobUrl.substring(0, 50) + '...');
+                    
+                    // Try to navigate top window to blob URL
+                    console.log('[Export] Attempting window.top.location.href = blobUrl');
+                    console.log('[Export] About to call setTimeout');
+                    try {
+                        // Use setTimeout to ensure async execution
+                        const timerId = setTimeout(function timeoutCallback() {
+                            console.log('[Export] setTimeout callback EXECUTED');
+                            console.log('[Export] Inside setTimeout, checking window.top:', !!window.top);
+                            console.log('[Export] window.top.location exists:', !!(window.top && window.top.location));
+                            
+                            if (window.top && window.top.location) {
+                                // Create a link with download attribute
+                                const a = document.createElement('a');
+                                a.href = blobUrl;
+                                a.download = fileName;
+                                a.target = '_top';
+                                a.style.display = 'none';
+                                document.body.appendChild(a);
+                                console.log('[Export] Download link created, triggering click');
+                                a.click();
+                                document.body.removeChild(a);
+                                console.log('[Export] Click triggered');
+                            } else {
+                                console.log('[Export] window.top.location not available, using fallback');
+                                // Fallback: try window.open
+                                const opened = window.open(blobUrl, '_top');
+                                console.log('[Export] window.open result:', opened ? 'opened' : 'null/blocked');
+                            }
+                        }, 0);
+                        console.log('[Export] setTimeout called, timerId:', timerId);
+                    } catch (e) {
+                        console.error('[Export] setTimeout download failed:', e);
+                    }
+                } else {
+                    console.log('[Export] In normal browser window, exportToPptx handles download internally');
+                }
+
                 hideExportOverlay();
                 updateExportCancelButton(false);
 
             } catch (err) {
+                console.error('[Export] Export error caught:', err);
                 if (isClientExportAbortError(err)) {
                     hideExportOverlay();
                     updateExportCancelButton(false);

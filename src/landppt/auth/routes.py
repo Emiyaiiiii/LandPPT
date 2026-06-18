@@ -337,31 +337,59 @@ async def login(
             pass
         
         # Check if request is from an iframe
+        # Method 1: Check Referer header (may be empty in cross-domain iframe)
         referer = request.headers.get("referer", "")
         request_url = str(request.url)
         referer_indicates_iframe = bool(referer) and not request_url.startswith(referer.split('?')[0])
+        
+        # Method 2: Check URL parameter (for explicit iframe mode when Referer is blocked)
         iframe_param = request.query_params.get("_iframe", "")
         param_indicates_iframe = iframe_param in ("1", "true", "yes")
+        
+        # Method 3: Check Sec-Fetch-Site header
+        # Note: Sec-Fetch-Site: none means direct navigation (address bar, bookmark)
+        # Only cross-site indicates iframe embedding from different site
         fetch_site = request.headers.get("sec-fetch-site", "")
         fetch_indicates_iframe = fetch_site == "cross-site"
+        
         is_iframe = referer_indicates_iframe or param_indicates_iframe or fetch_indicates_iframe
         
-        # Redirect to dashboard (preserve _session_id for iframe)
-        if is_iframe and app_config.enable_iframe_support:
-            redirect_url = f"/dashboard?_session_id={session_id}"
-            response = RedirectResponse(url=redirect_url, status_code=302)
+        # Set cookie max_age based on session expiration
+        current_expire_minutes = auth_service._get_current_expire_minutes()
+        cookie_max_age = None if current_expire_minutes == 0 else current_expire_minutes * 60
+        
+        # Determine cookie settings based on iframe support configuration
+        from ..core.config import app_config
+        
+        # For cross-site requests (Sec-Fetch-Site: cross-site), always use SameSite=None
+        # This handles iframe scenarios even when enable_iframe_support is False
+        # because browser will block SameSite=Lax cookies in cross-site contexts
+        if fetch_indicates_iframe:
             cookie_samesite = "none"
-            cookie_secure = app_config.iframe_cookie_secure
+            # Auto-detect secure requirement: use Secure=True only for HTTPS or non-localhost
+            # For localhost HTTP, Secure=False is required for cookie to work
+            request_host = request.headers.get("host", "").split(":")[0]
+            is_localhost = request_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0")
+            is_https = request.url.scheme == "https"
+            cookie_secure = app_config.iframe_cookie_secure and (is_https or not is_localhost)
+            logger.info(f"Login POST cross-site iframe detected: samesite=none, secure={cookie_secure}")
+        elif app_config.enable_iframe_support and is_iframe:
+            cookie_samesite = "none"
+            request_host = request.headers.get("host", "").split(":")[0]
+            is_localhost = request_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0")
+            is_https = request.url.scheme == "https"
+            cookie_secure = app_config.iframe_cookie_secure and (is_https or not is_localhost)
+            logger.info(f"Login POST iframe mode: samesite=none, secure={cookie_secure}")
         else:
-            response = RedirectResponse(url="/dashboard", status_code=302)
             cookie_samesite = "lax"
             cookie_secure = False
 
-        # Set cookie max_age based on session expiration
-        # If session_expire_minutes is 0, set cookie to never expire (None means session cookie)
-        current_expire_minutes = auth_service._get_current_expire_minutes()
-        cookie_max_age = None if current_expire_minutes == 0 else current_expire_minutes * 60
-
+        # Always pass _session_id in redirect URL to support iframe scenarios
+        # Even if cookie SameSite=Lax fails (blocked by browser), URL param can still work
+        redirect_url = f"/dashboard?_session_id={session_id}"
+        response = RedirectResponse(url=redirect_url, status_code=302)
+        
+        # For iframe support: set cookie with appropriate SameSite
         response.set_cookie(
             key="session_id",
             value=session_id,
@@ -370,6 +398,8 @@ async def login(
             secure=cookie_secure,
             samesite=cookie_samesite
         )
+        
+        logger.info(f"Login POST: is_iframe={is_iframe}, samesite={cookie_samesite}, secure={cookie_secure}")
         
         logger.info(f"User {username} logged in successfully")
         return response

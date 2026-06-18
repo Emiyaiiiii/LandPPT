@@ -478,7 +478,7 @@ async function loadAllImages() {
 
     while (hasMore) {
         try {
-            const response = await fetch(`/api/image/gallery/list?page=${currentPage}&per_page=50`);
+            const response = await fetch(`/api/image/gallery/list?page=${currentPage}&per_page=50`, { credentials: 'same-origin' });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);

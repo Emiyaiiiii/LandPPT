@@ -872,6 +872,7 @@ async function quickAiEditApply() {
 
         const response = await fetch('/api/ai/element-edit', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             },

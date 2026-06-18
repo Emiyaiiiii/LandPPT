@@ -331,6 +331,7 @@ async function regenerateSelectedImage() {
         // 发送重新生成请求
         const response = await fetch('/api/ai/regenerate-image', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -666,6 +667,7 @@ async function autoRepairSlideLayout() {
         updateProgressToast(progressToast, '正在进行智能排版修复...', 40);
         const response = await fetch(`/api/projects/${targetProjectId}/slides/${currentSlideIndex + 1}/auto-repair-layout`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -755,6 +757,7 @@ async function autoGenerateSlideImages() {
         // 发送一键配图请求
         const response = await fetch('/api/ai/auto-generate-slide-images', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             },

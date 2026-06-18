@@ -254,7 +254,7 @@ async function quickEditReset() {
     try {
         showToolbarStatus('正在获取初始状态...', 'info');
 
-        const response = await fetch(`/api/projects/${projectId}`);
+        const response = await fetch(`/api/projects/${projectId}`, { credentials: 'same-origin' });
         if (!response.ok) {
             throw new Error('获取项目数据失败');
         }

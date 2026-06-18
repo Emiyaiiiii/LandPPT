@@ -81,7 +81,7 @@
                     sort: 'created_desc'
                 });
 
-                const response = await fetch(`/api/image/gallery/list?${params}`);
+                const response = await fetch(`/api/image/gallery/list?${params}`, { credentials: 'same-origin' });
                 const result = await response.json();
 
                 const loading = document.getElementById('imageLibraryLoading');
@@ -247,7 +247,7 @@
         // 获取图片的完整信息，包括绝对URL
         async function getImageCompleteInfo(imageId) {
             try {
-                const response = await fetch(`/api/image/${imageId}/info`);
+                const response = await fetch(`/api/image/${imageId}/info`, { credentials: 'same-origin' });
                 const result = await response.json();
 
                 if (result.success && result.image_info) {
@@ -262,7 +262,7 @@
             } catch (error) {
                 // 如果专用接口失败，尝试使用详情接口
                 try {
-                    const detailResponse = await fetch(`/api/image/detail/${imageId}`);
+                    const detailResponse = await fetch(`/api/image/detail/${imageId}`, { credentials: 'same-origin' });
                     const detailResult = await detailResponse.json();
 
                     if (detailResult.success && detailResult.image) {

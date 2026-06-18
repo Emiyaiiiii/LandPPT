@@ -6,7 +6,9 @@ function regenerateContextSlide() {
 async function pollBackgroundTaskUntilDone(taskId, { timeoutMs = 30 * 60 * 1000, intervalMs = 2000, onTick } = {}) {
     const start = Date.now();
     while (true) {
-        const resp = await fetch(`/api/landppt/tasks/${taskId}`);
+        const resp = await fetch(`/api/landppt/tasks/${taskId}`, {
+            credentials: 'same-origin'
+        });
         if (!resp.ok) {
             const txt = await resp.text();
             throw new Error(txt || `任务状态查询失败: HTTP ${resp.status}`);
@@ -75,6 +77,7 @@ function regenerateSlideByIndex(slideIndex) {
             try {
                 const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/slides/${slideIndex + 1}/regenerate/async`, {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         scenario: window.landpptEditorProjectInfo.scenario,
@@ -241,6 +244,7 @@ async function batchRegenerateSlides({ slideIndices, regenerateAll }) {
 
         const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/slides/batch-regenerate/async`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 regenerate_all: !!regenerateAll,
@@ -476,6 +480,7 @@ async function cleanupExcessSlides() {
 
         const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/slides/cleanup`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -533,6 +538,7 @@ async function saveSingleSlideToServer(slideIndex, htmlContent, options = {}) {
 
         const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/slides/${slideIndex}/save`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             },

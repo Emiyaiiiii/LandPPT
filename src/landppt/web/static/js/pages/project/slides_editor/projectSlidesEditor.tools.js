@@ -246,6 +246,7 @@
             try {
                 const response = await fetch('/api/image/upload', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     body: formData
                 });
 
@@ -280,7 +281,7 @@
 
         async function getImageAbsoluteUrl(imageId) {
             try {
-                const response = await fetch(`/api/image/${imageId}/info`);
+                const response = await fetch(`/api/image/${imageId}/info`, { credentials: 'same-origin' });
                 const result = await response.json();
 
                 if (result.success && result.image_info) {

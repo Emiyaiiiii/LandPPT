@@ -405,6 +405,7 @@
                 // 调用AI优化接口
                 const response = await fetch('/api/ai/optimize-outline', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
                     },

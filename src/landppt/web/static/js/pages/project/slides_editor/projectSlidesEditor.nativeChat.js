@@ -246,6 +246,7 @@ async function uploadNativeSingleFile(file) {
 
     const response = await fetch('/api/image/upload', {
         method: 'POST',
+        credentials: 'same-origin',
         body: formData
     });
 
@@ -442,6 +443,7 @@ async function sendNativeChatMessage() {
 
         const response = await fetch('/api/ai/slide-native-dialog/stream', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });

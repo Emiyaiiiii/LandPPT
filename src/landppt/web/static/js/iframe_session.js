@@ -105,6 +105,11 @@
         if (url.includes('_session_id=')) {
             return url;
         }
+        
+        // 静态文件、媒体文件等不需要 session 认证
+        if (/^\/static\/|\/media\/|\.css|\.js|\.woff|\.ttf|\.png|\.jpg|\.jpeg|\.gif|\.svg|\.ico|\/favicon/i.test(url)) {
+            return url;
+        }
 
         // 优先使用 token，如果有 token 就用 token
         const token = getStoredToken();
@@ -194,6 +199,12 @@
 
             if (typeof url === 'string') {
                 if (url.startsWith('/')) {
+                    // 静态文件、媒体文件等不需要 session 认证
+                    if (/^\/static\/|\/media\/|\.css|\.js|\.woff|\.ttf|\.png|\.jpg|\.jpeg|\.gif|\.svg|\.ico|\/favicon/i.test(url)) {
+                        console.log('[Iframe Session] Skipping auth for static file');
+                        return originalFetch.apply(this, [url, options]);
+                    }
+                    
                     let authParam = null;
                     let authValue = null;
                     

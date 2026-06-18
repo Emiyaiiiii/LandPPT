@@ -404,6 +404,7 @@ async function saveSlideOutline() {
         // 保存大纲到数据库
         const response = await fetch(`/projects/${window.landpptEditorConfig.projectId}/update-outline`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -452,7 +453,7 @@ function updateAIOutlineDisplay() {
 // 获取项目选择的全局母版模板
 async function getSelectedGlobalTemplate() {
     try {
-        const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/selected-global-template`);
+        const response = await fetch(`/api/projects/${window.landpptEditorConfig.projectId}/selected-global-template`, { credentials: 'same-origin' });
         if (!response.ok) {
             return null;
         }
@@ -542,6 +543,7 @@ async function updateOutlineForSlideOperation(operation, slideIndex, slideData =
         // 保存更新后的大纲到数据库
         const response = await fetch(`/projects/${window.landpptEditorConfig.projectId}/update-outline`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             },
@@ -658,6 +660,7 @@ async function sendAIMessage(options = {}) {
         // 发送流式AI编辑请求
         const response = await fetch('/api/ai/slide-edit/stream', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json'
             },

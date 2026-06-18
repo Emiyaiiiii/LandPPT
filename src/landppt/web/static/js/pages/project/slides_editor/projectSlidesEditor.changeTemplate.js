@@ -71,8 +71,8 @@ async function showChangeTemplateDialog() {
         }
 
         const [selectedResp, freeResp] = await Promise.all([
-            fetch(`/api/projects/${projectId}/selected-global-template`),
-            fetch(`/api/projects/${projectId}/free-template`)
+            fetch(`/api/projects/${projectId}/selected-global-template`, { credentials: 'same-origin' }),
+            fetch(`/api/projects/${projectId}/free-template`, { credentials: 'same-origin' })
         ]);
 
         const selectedData = await _tplReadJsonResponse(selectedResp);
@@ -259,7 +259,7 @@ async function _tplFetchAllLibraryTemplates() {
             url += `&search=${encodeURIComponent(_tplSearchTerm)}`;
         }
 
-        const resp = await fetch(url);
+        const resp = await fetch(url, { credentials: 'same-origin' });
         const data = await _tplReadJsonResponse(resp);
         if (!resp.ok) {
             throw new Error(data?.detail || data?.message || '模板列表加载失败');
@@ -502,6 +502,7 @@ async function _tplApply() {
         const isProjectFreeTemplate = _tplSelectedKey === 'project-free';
         const selectResp = await fetch(`/api/projects/${projectId}/select-template`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 project_id: projectId,
@@ -523,6 +524,7 @@ async function _tplApply() {
 
         const regenResp = await fetch(`/api/projects/${projectId}/slides/batch-regenerate/async`, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 regenerate_all: regenerateAll,
@@ -679,7 +681,7 @@ async function _tplGetTemplateDetail(templateId) {
     }
 
     const requestTask = (async () => {
-        const resp = await fetch(`/api/global-master-templates/${templateId}`);
+        const resp = await fetch(`/api/global-master-templates/${templateId}`, { credentials: 'same-origin' });
         const data = await _tplReadJsonResponse(resp);
         if (!resp.ok) {
             throw new Error(data?.detail || data?.message || `模板 ${templateId} 加载失败`);

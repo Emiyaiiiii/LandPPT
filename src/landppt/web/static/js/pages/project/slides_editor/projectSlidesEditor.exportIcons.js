@@ -1,19 +1,25 @@
         async function refreshIconExportRules(force = false) {
+            console.log('[Export-Icons] refreshIconExportRules called, force:', force);
             if (!force && runtimeIconExportRulesFetchPromise) {
+                console.log('[Export-Icons] Returning existing promise');
                 return runtimeIconExportRulesFetchPromise;
             }
 
             const run = (async () => {
                 try {
+                    console.log('[Export-Icons] Fetching icon rules from:', '/static/config/icon-export-rules.json?ts=' + Date.now());
                     const response = await fetch('/static/config/icon-export-rules.json?ts=' + Date.now(), {
                         cache: 'no-store'
                     });
+                    console.log('[Export-Icons] Icon rules fetch response status:', response.status);
                     if (!response.ok) throw new Error('HTTP ' + response.status);
                     const payload = await response.json();
+                    console.log('[Export-Icons] Icon rules JSON parsed successfully');
                     runtimeIconExportRulesRaw = sanitizeIconExportRules(payload);
                     runtimeIconExportRulesCompiled = null;
+                    console.log('[Export-Icons] Icon rules loaded and sanitized');
                 } catch (err) {
-                    console.warn('Failed to load icon export rules JSON, using default rules:', err);
+                    console.warn('[Export-Icons] Failed to load icon export rules JSON, using default rules:', err);
                     if (!runtimeIconExportRulesRaw) {
                         runtimeIconExportRulesRaw = sanitizeIconExportRules(null);
                         runtimeIconExportRulesCompiled = null;
@@ -25,6 +31,7 @@
                 if (typeof window !== 'undefined') {
                     window.__LANDPPT_ICON_EXPORT_RULES__ = getCompiledIconExportRules().rawRules;
                 }
+                console.log('[Export-Icons] refreshIconExportRules returning');
                 return getCompiledIconExportRules().rawRules;
             })();
 
